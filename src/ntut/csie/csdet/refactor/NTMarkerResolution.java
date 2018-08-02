@@ -37,20 +37,16 @@ public class NTMarkerResolution implements IMarkerResolution {
 		try {
 			CompilationUnit root = QuickFixUtils.getCompilationUnit(marker.getResource());
 			AST ast = root.getAST();
-			if (ast.apiLevel() <= 3) {// 3 means JLS3_INTERNAL
-				PopupDialog.showDialog("Oops", "This feature only support at Eclipse Kepler");
-			}else{
-				String problem = (String) marker.getAttribute(RLMarkerAttribute.RL_MARKER_TYPE);
-				if (problem != null
-						&& problem.equals(RLMarkerAttribute.CS_NESTED_TRY_STATEMENT)) {
-					ASTNode selectedNode = getBadSmellNode(root, marker);
-	
-					ExtractMethodRefactoring refactoring = new ExtractMethodRefactoring(
-							root, selectedNode.getStartPosition(), selectedNode.getLength());
-					ExtractMethodWizard refactoringWizard = new ExtractMethodWizard(refactoring);
-					RefactoringWizardOpenOperation operation = new RefactoringWizardOpenOperation(refactoringWizard);
-					operation.run(new Shell(), "Dialog Title");
-				}
+			String problem = (String) marker.getAttribute(RLMarkerAttribute.RL_MARKER_TYPE);
+			if (problem != null
+					&& problem.equals(RLMarkerAttribute.CS_NESTED_TRY_STATEMENT)) {
+				ASTNode selectedNode = getBadSmellNode(root, marker);
+
+				ExtractMethodRefactoring refactoring = new ExtractMethodRefactoring(
+						root, selectedNode.getStartPosition(), selectedNode.getLength());
+				ExtractMethodWizard refactoringWizard = new ExtractMethodWizard(refactoring);
+				RefactoringWizardOpenOperation operation = new RefactoringWizardOpenOperation(refactoringWizard);
+				operation.run(new Shell(), "Dialog Title");
 			}
 		} catch (Exception e) {
 			logger.error("[NTMarkerResolution] EXCEPTION ", e);

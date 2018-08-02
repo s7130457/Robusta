@@ -51,7 +51,7 @@ public class TryStatementCounterVisitorTest {
 				+ JavaProjectMaker.FOLDERNAME_SOURCE + "/"
 				+ PathUtils.dot2slash(NestedTryStatementExample.class.getName())
 				+ JavaProjectMaker.JAVA_FILE_EXTENSION);
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 		parser.setSource(JavaCore.createCompilationUnitFrom(ResourcesPlugin.getWorkspace().getRoot().getFile(path)));
 		parser.setResolveBindings(true);

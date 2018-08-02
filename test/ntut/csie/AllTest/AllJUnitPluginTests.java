@@ -48,6 +48,9 @@ import ntut.csie.robusta.codegen.ExpressionStatementStringFinderVisitorTest;
 import ntut.csie.robusta.codegen.QuickFixCoreTest;
 import ntut.csie.robusta.codegen.StatementFinderVisitorTest;
 import ntut.csie.robusta.codegen.VariableDeclarationStatementFinderVisitorTest;
+import ntut.csie.robusta.codegen.markerresolution.MoveClosifyToFinallyReleaseMethodInTryQuickFixTest;
+import ntut.csie.robusta.codegen.markerresolution.MoveClosifyToFinallyReleaseMethodNotInTryQuickFixTest;
+import ntut.csie.robusta.codegen.markerresolution.MoveClosifyToFinallyWithoutTryQuickFixTest;
 import ntut.csie.robusta.codegen.refactoring.ExtractMethodAnalyzerTest;
 import ntut.csie.robusta.codegen.refactoring.TEFBExtractMethodRefactoringTest;
 import ntut.csie.util.NodeUtilsTest;
@@ -137,6 +140,9 @@ import org.junit.runners.Suite;
 	testBuildUTFileForDummy.class,
 	testBuildUTFileForCarelessCleanup.class,
 	
+	MoveClosifyToFinallyWithoutTryQuickFixTest.class,
+	MoveClosifyToFinallyReleaseMethodInTryQuickFixTest.class,
+	MoveClosifyToFinallyReleaseMethodNotInTryQuickFixTest.class
 })
 public class AllJUnitPluginTests {
 }

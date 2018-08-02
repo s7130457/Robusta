@@ -49,7 +49,7 @@ public class testBuildUTFileForThrown {
 	public void setUp() throws Exception {
 		setUpTestingEnvironment();
 		markerInfos = visitCompilationAndGetSmellList();
-		setUpMethodIndexOfMarkerInfo();
+		setUpMethodDeclarationIndexOfMarkerInfo();
 		resoluation = new AddAspectsMarkerResolutionForThrowFromFinally(
 				"test");
 		addAspectsMarkerResoluationExamplePath = new Path(
@@ -75,15 +75,22 @@ public class testBuildUTFileForThrown {
 		smellSettings = environmentBuilder.getSmellSettings();
 	}
 
-	private void setUpMethodIndexOfMarkerInfo() throws JavaModelException {
+	private void setUpMethodDeclarationIndexOfMarkerInfo() throws JavaModelException {
 		ASTMethodCollector methodCollector = new ASTMethodCollector();
 		compilationUnit.accept(methodCollector);
 		for (MarkerInfo m : markerInfos) {
-			int methodIdx = -1;
-			for (MethodDeclaration method : methodCollector.getMethodList()) {
-				methodIdx++;
-				if(m.getLineNumber()<compilationUnit.getLineNumber(method.getStartPosition()))
-					m.setMethodIndex(methodIdx-1);
+			int methodDeclarationIdx = -1;
+			int methodDeclarationSize = methodCollector.getMethodList().size();
+			for (MethodDeclaration methodDeclarationBlock : methodCollector.getMethodList()) {
+				methodDeclarationIdx++;
+				if(m.getLineNumber()<compilationUnit.getLineNumber(methodDeclarationBlock.getStartPosition())){
+					m.setMethodIndex(methodDeclarationIdx-1);
+					break;
+				} else if(methodDeclarationBlock == methodCollector.getMethodList().get(methodDeclarationSize-1)) {
+					m.setMethodIndex(methodDeclarationSize-1);
+					break;
+				}
+				
 			}
 		}
 	}
@@ -135,11 +142,13 @@ public class testBuildUTFileForThrown {
 		environmentBuilder.cleanEnvironment();
 	}
 
-	
+	/**
+	 * badSmellLightBallIndex is the specific bad smell light ball index in this class
+	 */
 	@Test
-	public void TestBuildUnitTestFileFirstMethodIndex() {
-		int theFirstMarkerInfo = 0;
-		marker = getSpecificMarkerByMarkerInfoIndex(theFirstMarkerInfo);
+	public void testBuildUnitTestFileFirstMethodIndexOfStaticMethod() {
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
 		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
 		AddAspectsMarkerResolutionForThrowFromFinally marker = new AddAspectsMarkerResolutionForThrowFromFinally(
 				"test");
@@ -153,7 +162,7 @@ public class testBuildUTFileForThrown {
 		Actual = Actual.replaceAll("\\s", "");
 		String currentDirPath = System.getProperty("user.dir");
 		String packages = currentDirPath + File.separator
-				+ "test/ntut/csie/failFastUT/Thrown/ThrowFromFinallyUTFileExcepted";
+				+ "test/ntut/csie/failFastUT/Thrown/UT4StaticMethodExpected";
 		File file = new File(packages);
 		String utContentExpected = "";
 		utContentExpected = readFile(file);
@@ -162,8 +171,82 @@ public class testBuildUTFileForThrown {
 	}
 	
 	@Test
-	public void buildUnitTestFileSecondMethodIndex() {
-		int theSecondMarkerInfo = 1;
+	public void testBuildUnitTestFileSecondMethodIndexOfStaticMethod() {
+		int badSmellLightBallIndex = 1;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
+		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
+		AddAspectsMarkerResolutionForThrowFromFinally marker = new AddAspectsMarkerResolutionForThrowFromFinally(
+				"test");
+		String packageChain = AspectPackage;
+		String workSpacePath = ResourcesPlugin.getWorkspace().getRoot()
+				.getLocation().toString();
+		String createPackagePath = workSpacePath + "/" + addpackagePath;
+		String filePathUTFile = createPackagePath + "/testUTFile.java";
+		String Actual = marker.buildTestFile(config, packageChain,
+				filePathUTFile);
+		Actual = Actual.replaceAll("\\s", "");
+		String currentDirPath = System.getProperty("user.dir");
+		String packages = currentDirPath + File.separator
+				+ "test/ntut/csie/failFastUT/Thrown/UT4StaticMethodExpected";
+		File file = new File(packages);
+		String utContentExpected = "";
+		utContentExpected = readFile(file);
+		utContentExpected = utContentExpected.split("@end")[1].replaceAll("\\s", "");
+		Assert.assertEquals(utContentExpected, Actual);
+	}
+	
+	@Test
+	public void testBuildUnitTestFileThirdMethodIndexOfStaticMethod() {
+		int badSmellLightBallIndex = 2;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
+		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
+		AddAspectsMarkerResolutionForThrowFromFinally marker = new AddAspectsMarkerResolutionForThrowFromFinally(
+				"test");
+		String packageChain = AspectPackage;
+		String workSpacePath = ResourcesPlugin.getWorkspace().getRoot()
+				.getLocation().toString();
+		String createPackagePath = workSpacePath + "/" + addpackagePath;
+		String filePathUTFile = createPackagePath + "/testUTFile.java";
+		String Actual = marker.buildTestFile(config, packageChain,
+				filePathUTFile);
+		Actual = Actual.replaceAll("\\s", "");
+		String currentDirPath = System.getProperty("user.dir");
+		String packages = currentDirPath + File.separator
+				+ "test/ntut/csie/failFastUT/Thrown/UT4StaticMethodExpected";
+		File file = new File(packages);
+		String utContentExpected = "";
+		utContentExpected = readFile(file).replaceAll("\\s", "");
+		utContentExpected = utContentExpected.split("@end")[2].replaceAll("\\s", "");
+		Assert.assertEquals(utContentExpected, Actual);
+	}
+
+	@Test
+	public void testBuildUnitTestFileFirstMethodIndexOfPublicMethod() {
+		int badSmellLightBallIndex = 3;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
+		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
+		AddAspectsMarkerResolutionForThrowFromFinally marker = new AddAspectsMarkerResolutionForThrowFromFinally(
+				"test");
+		String packageChain = AspectPackage;
+		String workSpacePath = ResourcesPlugin.getWorkspace().getRoot()
+				.getLocation().toString();
+		String createPackagePath = workSpacePath + "/" + addpackagePath;
+		String filePathUTFile = createPackagePath + "/testUTFile.java";
+		String Actual = marker.buildTestFile(config, packageChain,
+				filePathUTFile).replaceAll("\\s", "");
+		String currentDirPath = System.getProperty("user.dir");
+		String packages = currentDirPath + File.separator
+				+ "test/ntut/csie/failFastUT/Thrown/UT4PublicMethodExpected";
+		File file = new File(packages);
+		String utContentExpected = "";
+		utContentExpected = readFile(file);
+		utContentExpected = utContentExpected.split("@end")[0].replaceAll("\\s", "");
+		Assert.assertEquals(utContentExpected, Actual);
+	}
+	
+	@Test
+	public void testBuildUnitTestFileSecondMethodIndexOfPublicMethod() {
+		int theSecondMarkerInfo = 4;
 		marker = getSpecificMarkerByMarkerInfoIndex(theSecondMarkerInfo);
 		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
 		AddAspectsMarkerResolutionForThrowFromFinally marker = new AddAspectsMarkerResolutionForThrowFromFinally(
@@ -178,7 +261,7 @@ public class testBuildUTFileForThrown {
 		Actual = Actual.replaceAll("\\s", "");
 		String currentDirPath = System.getProperty("user.dir");
 		String packages = currentDirPath + File.separator
-				+ "test/ntut/csie/failFastUT/Thrown/ThrowFromFinallyUTFileExcepted";
+				+ "test/ntut/csie/failFastUT/Thrown/UT4PublicMethodExpected";
 		File file = new File(packages);
 		String utContentExpected = "";
 		utContentExpected = readFile(file);
@@ -187,9 +270,59 @@ public class testBuildUTFileForThrown {
 	}
 	
 	@Test
-	public void buildUnitTestFileThirdMethodIndex() {
-		int theThirdMarkerInfo = 2;
-		marker = getSpecificMarkerByMarkerInfoIndex(theThirdMarkerInfo);
+	public void testBuildUnitTestFileThirdMethodIndexOfPublicMethod() {
+		int theSecondMarkerInfo = 5;
+		marker = getSpecificMarkerByMarkerInfoIndex(theSecondMarkerInfo);
+		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
+		AddAspectsMarkerResolutionForThrowFromFinally marker = new AddAspectsMarkerResolutionForThrowFromFinally(
+				"test");
+		String packageChain = AspectPackage;
+		String workSpacePath = ResourcesPlugin.getWorkspace().getRoot()
+				.getLocation().toString();
+		String createPackagePath = workSpacePath + "/" + addpackagePath;
+		String filePathUTFile = createPackagePath + "/testUTFile.java";
+		String Actual = marker.buildTestFile(config, packageChain,
+				filePathUTFile);
+		Actual = Actual.replaceAll("\\s", "");
+		
+		String currentDirPath = System.getProperty("user.dir");
+		String packages = currentDirPath + File.separator
+				+ "test/ntut/csie/failFastUT/Thrown/UT4PublicMethodExpected";
+		File file = new File(packages);
+		String utContentExpected = "";
+		utContentExpected = readFile(file);
+		utContentExpected = utContentExpected.split("@end")[2].replaceAll("\\s", "");
+		Assert.assertEquals(utContentExpected, Actual);
+	}
+	
+	@Test
+	public void testBuildUnitTestFileFirstMethodIndexOfPrivateMethod() {
+		int badSmellLightBallIndex = 6;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
+		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
+		AddAspectsMarkerResolutionForThrowFromFinally marker = new AddAspectsMarkerResolutionForThrowFromFinally(
+				"test");
+		String packageChain = AspectPackage;
+		String workSpacePath = ResourcesPlugin.getWorkspace().getRoot()
+				.getLocation().toString();
+		String createPackagePath = workSpacePath + "/" + addpackagePath;
+		String filePathUTFile = createPackagePath + "/testUTFile.java";
+		String Actual = marker.buildTestFile(config, packageChain,
+				filePathUTFile).replaceAll("\\s", "");
+		String currentDirPath = System.getProperty("user.dir");
+		String packages = currentDirPath + File.separator
+				+ "test/ntut/csie/failFastUT/Thrown/UT4PrivateMethodExpected";
+		File file = new File(packages);
+		String utContentExpected = "";
+		utContentExpected = readFile(file);
+		utContentExpected = utContentExpected.split("@end")[0].replaceAll("\\s", "");
+		Assert.assertEquals(utContentExpected, Actual);
+	}
+	
+	@Test
+	public void testBuildUnitTestFileSecondMethodIndexOfPrivateMethod() {
+		int badSmellLightBallIndex = 7;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
 		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
 		AddAspectsMarkerResolutionForThrowFromFinally marker = new AddAspectsMarkerResolutionForThrowFromFinally(
 				"test");
@@ -203,13 +336,38 @@ public class testBuildUTFileForThrown {
 		Actual = Actual.replaceAll("\\s", "");
 		String currentDirPath = System.getProperty("user.dir");
 		String packages = currentDirPath + File.separator
-				+ "test/ntut/csie/failFastUT/Thrown/ThrowFromFinallyUTFileExcepted";
+				+ "test/ntut/csie/failFastUT/Thrown/UT4PrivateMethodExpected";
 		File file = new File(packages);
 		String utContentExpected = "";
-		utContentExpected = readFile(file).replaceAll("\\s", "");
+		utContentExpected = readFile(file);
+		utContentExpected = utContentExpected.split("@end")[1].replaceAll("\\s", "");
+		Assert.assertEquals(utContentExpected, Actual);
+	}
+	
+	@Test
+	public void testBuildUnitTestFileThirdMethodIndexOfPrivateMethod() {
+		int badSmellLightBallIndex = 8;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
+		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
+		AddAspectsMarkerResolutionForThrowFromFinally marker = new AddAspectsMarkerResolutionForThrowFromFinally(
+				"test");
+		String packageChain = AspectPackage;
+		String workSpacePath = ResourcesPlugin.getWorkspace().getRoot()
+				.getLocation().toString();
+		String createPackagePath = workSpacePath + "/" + addpackagePath;
+		String filePathUTFile = createPackagePath + "/testUTFile.java";
+		String Actual = marker.buildTestFile(config, packageChain,
+				filePathUTFile);
+		Actual = Actual.replaceAll("\\s", "");
+		
+		String currentDirPath = System.getProperty("user.dir");
+		String packages = currentDirPath + File.separator
+				+ "test/ntut/csie/failFastUT/Thrown/UT4PrivateMethodExpected";
+		File file = new File(packages);
+		String utContentExpected = "";
+		utContentExpected = readFile(file);
 		utContentExpected = utContentExpected.split("@end")[2].replaceAll("\\s", "");
 		Assert.assertEquals(utContentExpected, Actual);
 	}
-
 
 }

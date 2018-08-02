@@ -38,12 +38,12 @@ public class RuntimeEnvironmentProjectReader {
 	
 	/**
 	 * @see org.eclipse.jdt.core.dom.CompilationUnit
-	 * I use AST.JLS3 parser edition, because it's for JDK5 or later.
+	 * I use AST.JLS8 parser edition, because it's for JDK5 or later.
 	 */
 	public static CompilationUnit getCompilationUnit(IType type){
 		IJavaElement javaElement = JavaCore.create(type.getResource());
 		//Create AST to parse
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 		parser.setSource((ICompilationUnit)javaElement);
 		parser.setResolveBindings(true);

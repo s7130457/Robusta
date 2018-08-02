@@ -34,6 +34,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+
+
 public class thrownExceptionFromFinallyConfigTest {
 	private TestEnvironmentBuilder environmentBuilder;
 	private CompilationUnit compilationUnitThrowFromFinally;
@@ -48,7 +50,7 @@ public class thrownExceptionFromFinallyConfigTest {
 	public void setUp() throws Exception {
 		setUpTestingEnvironment();
 		ThrowFromFinallyMarkerInfos = visitCompilationUnitThrowFromFinallyAndGetSmellList();
-		setUpMethodIndexOfMarkerInfo();
+		setUpMethodDeclarationIndexOfMarkerInfo();
 		ThrowFromFinallyResoluation = new AddAspectsMarkerResolutionForThrowFromFinally(
 				"test");
 		ThrowFromFinallyExamplePath = new Path(
@@ -72,17 +74,21 @@ public class thrownExceptionFromFinallyConfigTest {
 		smellSettings = environmentBuilder.getSmellSettings();
 	}
 
-	private void setUpMethodIndexOfMarkerInfo() throws JavaModelException {
+	private void setUpMethodDeclarationIndexOfMarkerInfo() throws JavaModelException {
 		ASTMethodCollector methodCollector = new ASTMethodCollector();
 		compilationUnitThrowFromFinally.accept(methodCollector);
 		for (MarkerInfo m : ThrowFromFinallyMarkerInfos) {
-			int methodIdx = -1;
-			for (MethodDeclaration method : methodCollector.getMethodList()) {
-								
-				methodIdx++;
-				
-				if(m.getLineNumber()<compilationUnitThrowFromFinally.getLineNumber(method.getStartPosition()))
-					m.setMethodIndex(methodIdx-1);
+			int methodDeclarationIdx = -1;
+			for (MethodDeclaration methodDeclarationBlock : methodCollector.getMethodList()) {
+				methodDeclarationIdx++;
+				int methodDeclarationSize = methodCollector.getMethodList().size();
+				if(m.getLineNumber()<compilationUnitThrowFromFinally.getLineNumber(methodDeclarationBlock.getStartPosition())){
+					m.setMethodIndex(methodDeclarationIdx-1);
+					break;
+				} else if(methodDeclarationBlock == methodCollector.getMethodList().get(methodDeclarationSize-1)) {
+					m.setMethodIndex(methodDeclarationSize-1);
+					break;
+				}
 
 			}
 		}
@@ -130,7 +136,7 @@ public class thrownExceptionFromFinallyConfigTest {
 		fis.read(data);
 		fis.close();
 		ReadContent = new String(data, "UTF-8");
-		return ReadContent;
+ 		return ReadContent;
 	}
 
 	@After
@@ -143,7 +149,6 @@ public class thrownExceptionFromFinallyConfigTest {
 		String expected = "";
 		try {
 			expected = readFile("thrownFromFinallyExample");
-
 			expected = expected.substring(
 					expected.indexOf("try {"),
 					expected.indexOf("private static")).replaceAll(
@@ -235,6 +240,214 @@ public class thrownExceptionFromFinallyConfigTest {
 		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
 		String actual = builder.getMethodInFinal();
 		Assert.assertEquals("throwEx", actual);
+	}
+	
+	@Test 
+	public void testGetMethodCallerFirstLightBallForStaticMethod() {
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "thrownFromFinallyExample.callStaticMethod();";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerSecondLightBallForStaticMethod() {
+		int badSmellLightBallIndex = 1;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "thrownFromFinallyExample.callStaticMethod();";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerThirdLightBallForStaticMethod() {
+		int badSmellLightBallIndex = 2;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "thrownFromFinallyExample.callStaticMethod();";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerFirstLightBallForPublicMethod() {
+		int badSmellLightBallIndex = 3;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "thrownFromFinallyExample object = new thrownFromFinallyExample();\n\t\t\tobject.callPublicMethod();";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerSecondLightBallForPublicMethod() {
+		int badSmellLightBallIndex = 4;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "thrownFromFinallyExample object = new thrownFromFinallyExample();\n\t\t\tobject.callPublicMethod();";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerThirdLightBallForPublicMethod() {
+		int badSmellLightBallIndex = 5;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "thrownFromFinallyExample object = new thrownFromFinallyExample();\n\t\t\tobject.callPublicMethod();";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerFirstLightBallForPrivateMethod() {
+		int badSmellLightBallIndex = 6;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "thrownFromFinallyExample object = new thrownFromFinallyExample();\n\t\t\t" +
+						"Method privateMethod = thrownFromFinallyExample.class.getDeclaredMethod(\"callPrivateMethod\");\n\t\t\t" +
+						"privateMethod.setAccessible(true);\n\t\t\t" +
+						"privateMethod.invoke(object);";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerSecondLightBallForPrivateMethod() {
+		int badSmellLightBallIndex = 7;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "thrownFromFinallyExample object = new thrownFromFinallyExample();\n\t\t\t" +
+						"Method privateMethod = thrownFromFinallyExample.class.getDeclaredMethod(\"callPrivateMethod\");\n\t\t\t" +
+						"privateMethod.setAccessible(true);\n\t\t\t" +
+						"privateMethod.invoke(object);";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerThirdLightBallForPrivateMethod() {
+		int badSmellLightBallIndex = 8;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "thrownFromFinallyExample object = new thrownFromFinallyExample();\n\t\t\t" +
+						"Method privateMethod = thrownFromFinallyExample.class.getDeclaredMethod(\"callPrivateMethod\");\n\t\t\t" +
+						"privateMethod.setAccessible(true);\n\t\t\t" +
+						"privateMethod.invoke(object);";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetAssertioFirstLightBallForStaticMethod() {
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "catch (CustomRobustaException e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.assertEquals(\"This Exception is thrown from try/catch block, so the bad smell is removed.\",e.getMessage());"
+						+ "\n\t\t} catch (Exception e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.fail(\"Exception is thrown from finally block.\");"+"\n\t\t}";
+		Assert.assertEquals(Expected, builder.getAssertion(methodDeclaration));
+	}
+	
+	@Test
+	public void testGetAssertioSecondLightBallForStaticMethod() {
+		int badSmellLightBallIndex = 1;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "catch (CustomRobustaException e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.assertEquals(\"This Exception is thrown from try/catch block, so the bad smell is removed.\",e.getMessage());"
+						+ "\n\t\t} catch (Exception e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.fail(\"Exception is thrown from finally block.\");"+"\n\t\t}";
+		Assert.assertEquals(Expected, builder.getAssertion(methodDeclaration));
+	}
+	
+	@Test
+	public void testGetAssertioThirdLightBallForStaticMethod() {
+		int badSmellLightBallIndex = 2;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "catch (CustomRobustaException e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.assertEquals(\"This Exception is thrown from try/catch block, so the bad smell is removed.\",e.getMessage());"
+						+ "\n\t\t} catch (Exception e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.fail(\"Exception is thrown from finally block.\");"+"\n\t\t}";
+		Assert.assertEquals(Expected, builder.getAssertion(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetAssertioFirstLightBallForPublicMethod() {
+		int badSmellLightBallIndex = 3;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "catch (CustomRobustaException e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.assertEquals(\"This Exception is thrown from try/catch block, so the bad smell is removed.\",e.getMessage());"
+						+ "\n\t\t} catch (Exception e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.fail(\"Exception is thrown from finally block.\");"+"\n\t\t}";
+		Assert.assertEquals(Expected, builder.getAssertion(methodDeclaration));
+	}
+	
+	@Test
+	public void testGetAssertioSecondLightBallForPublicMethod() {
+		int badSmellLightBallIndex = 4;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "catch (CustomRobustaException e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.assertEquals(\"This Exception is thrown from try/catch block, so the bad smell is removed.\",e.getMessage());"
+						+ "\n\t\t} catch (Exception e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.fail(\"Exception is thrown from finally block.\");"+"\n\t\t}";
+		Assert.assertEquals(Expected, builder.getAssertion(methodDeclaration));
+	}
+	
+	@Test
+	public void testGetAssertioThirdLightBallForPublicMethod() {
+		int badSmellLightBallIndex = 5;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "catch (CustomRobustaException e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.assertEquals(\"This Exception is thrown from try/catch block, so the bad smell is removed.\",e.getMessage());"
+						+ "\n\t\t} catch (Exception e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.fail(\"Exception is thrown from finally block.\");"+"\n\t\t}";
+		Assert.assertEquals(Expected, builder.getAssertion(methodDeclaration));
+	}
+	
+	//todo
+	@Test 
+	public void testGetAssertioFirstLightBallForPrivateMethod() {
+		int badSmellLightBallIndex = 6;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "catch(Exception e){\n\t\t\t"
+						+ "e.printStackTrace();\n\t\t\t"
+						+ "String exceptionMessage = e.getCause().getMessage().toString();\n\t\t\t"
+						+ "Assert.assertEquals(\"This Exception is thrown from try/catch block, so the bad smell is removed.\",exceptionMessage);\n\t\t"
+						+ "}";
+		Assert.assertEquals(Expected, builder.getAssertion(methodDeclaration));
+	}
+	
+	@Test
+	public void testGetAssertioSecondLightBallForPrivateMethod() {
+		int badSmellLightBallIndex = 7;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "catch(Exception e){\n\t\t\t"
+			+ "e.printStackTrace();\n\t\t\t"
+			+ "String exceptionMessage = e.getCause().getMessage().toString();\n\t\t\t"
+			+ "Assert.assertEquals(\"This Exception is thrown from try/catch block, so the bad smell is removed.\",exceptionMessage);\n\t\t"
+			+ "}";
+		Assert.assertEquals(Expected, builder.getAssertion(methodDeclaration));
+	}
+	
+	@Test
+	public void testGetAssertioThirdLightBallForPrivateMethod() {
+		int badSmellLightBallIndex = 8;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,ThrowFromFinallyExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "catch(Exception e){\n\t\t\t"
+			+ "e.printStackTrace();\n\t\t\t"
+			+ "String exceptionMessage = e.getCause().getMessage().toString();\n\t\t\t"
+			+ "Assert.assertEquals(\"This Exception is thrown from try/catch block, so the bad smell is removed.\",exceptionMessage);\n\t\t"
+			+ "}";
+		Assert.assertEquals(Expected, builder.getAssertion(methodDeclaration));
 	}
 	
 }

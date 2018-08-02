@@ -91,7 +91,7 @@ public class MarkerModel {
 		CompilationUnit root = null;
 		try {
 			IJavaElement javaElement = JavaCore.create(resource);
-			ASTParser parser = ASTParser.newParser(AST.JLS3);
+			ASTParser parser = ASTParser.newParser(AST.JLS8);
 			parser.setKind(ASTParser.K_COMPILATION_UNIT);
 			parser.setSource((ICompilationUnit) javaElement);
 			parser.setResolveBindings(true);

@@ -31,7 +31,7 @@ public class ASTNodeFinder {
 	public static CompilationUnit getCompilationUnit(Class<?> clazz, String projectName) {
 		Path path = new Path(PathUtils.getPathOfClassUnderSrcFolder(clazz, projectName));
 
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 
 		parser.setSource(JavaCore.createCompilationUnitFrom(ResourcesPlugin
@@ -46,7 +46,7 @@ public class ASTNodeFinder {
 	public static ASTNode getNodeFromSpecifiedClass (Class<?> className, String projectName, int lineNumber) throws IOException, CoreException {
 		Path path = new Path(PathUtils.getPathOfClassUnderSrcFolder(className, projectName));
 
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 
 		parser.setSource(JavaCore.createCompilationUnitFrom(ResourcesPlugin.getWorkspace().getRoot().getFile(path)));

@@ -56,6 +56,10 @@ public class RLAnnotationFileUtilTest {
 			Method testExtraJarIdMethod = RLAnnotationFileUtil.class
 					.getDeclaredMethod("extractRLAnnotationJarId", String.class);
 			testExtraJarIdMethod.setAccessible(true);
+			Method setRLAnnotationJarId = RLAnnotationFileUtil.class
+			.getDeclaredMethod("setRLAnnotationJarId", String.class);
+			setRLAnnotationJarId.setAccessible(true);
+	        setRLAnnotationJarId.invoke(RLAnnotationFileUtil, "ntut.csie.robusta.agile.exception");
 			testJarId = (String) testExtraJarIdMethod.invoke(
 					RLAnnotationFileUtil, sampleFullJarId);
 		} catch (Exception ex) {
@@ -125,6 +129,10 @@ public class RLAnnotationFileUtilTest {
 					.getDeclaredMethod("doesRLAnnotationExistInClassPath",
 							IJavaProject.class);
 			testCheckExistInClassPathMethod.setAccessible(true);
+			Method setRLAnnotationJarId = RLAnnotationFileUtil.class
+			.getDeclaredMethod("setRLAnnotationJarId", String.class);
+			setRLAnnotationJarId.setAccessible(true);
+			setRLAnnotationJarId.invoke(RLAnnotationFileUtil, "ntut.csie.robusta.agile.exception");
 			statecheck = (Boolean) testCheckExistInClassPathMethod.invoke(RLAnnotationFileUtil, javaProj);
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);

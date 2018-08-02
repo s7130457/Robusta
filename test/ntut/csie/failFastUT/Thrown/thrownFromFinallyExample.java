@@ -5,7 +5,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class thrownFromFinallyExample {
-	public static void demo() throws IOException , SQLException {
+	public static void callStaticMethod() throws IOException , SQLException {
 		java.sql.Connection conn = null;
 		FileWriter fw = null;
 		try {
@@ -22,5 +22,35 @@ public class thrownFromFinallyExample {
 
 	private static void throwEx() throws SQLException {
 		throw new SQLException();
+	}
+	
+	public void callPublicMethod() throws IOException , SQLException {
+		java.sql.Connection conn = null;
+		FileWriter fw = null;
+		try {
+			fw = new FileWriter("test.txt");
+			fw.write("test");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}finally {
+			fw.close();
+			fw.close();
+			throwEx();
+		}
+	}
+	
+	private void callPrivateMethod() throws IOException , SQLException {
+		java.sql.Connection conn = null;
+		FileWriter fw = null;
+		try {
+			fw = new FileWriter("test.txt");
+			fw.write("test");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}finally {
+			fw.close();
+			fw.close();
+			throwEx();
+		}
 	}
 }

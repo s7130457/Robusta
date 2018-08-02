@@ -96,7 +96,7 @@ public class RethrowExRefactoringTest {
 				+";\n" + javaFile2String.getFileContent());
 		
 		
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 		
 		parser.setSource(JavaCore.createCompilationUnitFrom(ResourcesPlugin.getWorkspace().getRoot().getFile(dummyHandlerExamplePath)));
@@ -438,7 +438,7 @@ public class RethrowExRefactoringTest {
 		currentMethodNode.setAccessible(true);
 		currentMethodNode.set(refactoring, node);
 		
-		List<?> exceptionList = ((MethodDeclaration)node).thrownExceptions();
+		List<?> exceptionList = ((MethodDeclaration)node).thrownExceptionTypes();
 		
 		//if a method will throw a specified exception type, it does not need to add the exception type into method's information. 
 		refactoring.setExceptionType("IOException");
@@ -448,7 +448,7 @@ public class RethrowExRefactoringTest {
 		
 		checkMethodThrow.invoke(refactoring, node.getAST());
 		
-		exceptionList = ((MethodDeclaration)node).thrownExceptions();
+		exceptionList = ((MethodDeclaration)node).thrownExceptionTypes();
 		assertEquals(1, exceptionList.size());
 		assertEquals("IOException", exceptionList.get(0).toString());
 		
@@ -460,7 +460,7 @@ public class RethrowExRefactoringTest {
 		
 		checkMethodThrow.invoke(refactoring, node.getAST());
 		
-		exceptionList = ((MethodDeclaration)node).thrownExceptions();
+		exceptionList = ((MethodDeclaration)node).thrownExceptionTypes();
 		assertEquals(2, exceptionList.size());
 		assertEquals("IOException", exceptionList.get(0).toString());
 		assertEquals("RuntimeException", exceptionList.get(1).toString());

@@ -81,10 +81,16 @@ public class TestGenerateAspectJFileForThrowFromFinally {
 		compilationUnit.accept(methodCollector);
 		for (MarkerInfo m : markerInfos) {
 			int methodIdx = -1;
+			int methodDeclarationSize = methodCollector.getMethodList().size();
 			for (MethodDeclaration method : methodCollector.getMethodList()) {
 				methodIdx++;
-				if(m.getLineNumber()<compilationUnit.getLineNumber(method.getStartPosition()))
+				if(m.getLineNumber()<compilationUnit.getLineNumber(method.getStartPosition())){
 					m.setMethodIndex(methodIdx-1);
+					break;
+				} else if(method == methodCollector.getMethodList().get(methodDeclarationSize-1)) {
+					m.setMethodIndex(methodDeclarationSize-1);
+					break;
+				}
 			}
 		}
 	}

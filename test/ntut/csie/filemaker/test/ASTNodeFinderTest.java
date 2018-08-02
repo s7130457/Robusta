@@ -53,7 +53,7 @@ public class ASTNodeFinderTest {
 		Path ccExamplePath = new Path(PathUtils.getPathOfClassUnderSrcFolder(NodeUtilsTestSample.class, projectName));
 		
 		// Create AST to parse
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 
 		parser.setSource(JavaCore.createCompilationUnitFrom(ResourcesPlugin

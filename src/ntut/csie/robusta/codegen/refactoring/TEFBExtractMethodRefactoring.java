@@ -45,6 +45,7 @@ import org.eclipse.ltk.core.refactoring.TextFileChange;
 import org.eclipse.text.edits.MultiTextEdit;
 import org.eclipse.text.edits.TextEdit;
 import org.eclipse.text.edits.TextEditGroup;
+import org.eclipse.jdt.core.dom.ImportDeclaration;
 
 @SuppressWarnings({"restriction", "unchecked"})
 public class TEFBExtractMethodRefactoring extends org.eclipse.jdt.internal.corext.refactoring.code.ExtractMethodRefactoring {
@@ -246,30 +247,31 @@ public class TEFBExtractMethodRefactoring extends org.eclipse.jdt.internal.corex
 	}
 	
 	private void addCommentLine(AST ast, CatchClause cc) {
-		Statement placeHolder = (Statement) rewrite.createStringPlaceholder("// TODO Auto-generated catch block", ASTNode.EMPTY_STATEMENT);
+		Statement placeHolder = (Statement) rewrite.createStringPlaceholder("/* Although it's a Dummy Handler bad smell,\n" 
+				+"* Robusta recommends that you keep this bad smell\n"
+				+"* instead of choosing Quick Fix or Refactor that we provide.\n*/", ASTNode.EMPTY_STATEMENT);
 		cc.getBody().statements().add(placeHolder);
 	}
 
 	private void addJavaLoggerStatement(AST ast, CatchClause cc) {
-		//import java.util.logging.Logger;
-		addJavaLoggerLibrary();
-		
+		//import org.apache.log4j.Logger;
+		addApacheLog4jLibrary();
 		//private Logger logger = Logger.getLogger(CarelessCleanupTest.class.getName());
 		addLoggerField();
+		StringBuffer comment = new StringBuffer();
+		comment.append("PropertyConfigurator.configure(\"log4j.properties\");\n");
+		comment.append("logger.info(").append("e);");
+		ASTNode placeHolder = rewrite.createStringPlaceholder(
+				comment.toString(), ASTNode.EMPTY_STATEMENT);
 		
-		MethodInvocation cbMI = ast.newMethodInvocation();
-		cbMI.setName(ast.newSimpleName("warning"));
-		cbMI.setExpression(ast.newSimpleName(loggerName));
-		MethodInvocation cbarguMI = ast.newMethodInvocation();
-		cbarguMI.setName(ast.newSimpleName("getMessage"));
-		cbarguMI.setExpression(ast.newSimpleName("e"));
-		cbMI.arguments().add(cbarguMI);
-		ExpressionStatement catchES = ast.newExpressionStatement(cbMI);
-		cc.getBody().statements().add(catchES);
+		cc.getBody().statements().add(placeHolder);
 	}
 	
-	private void addJavaLoggerLibrary() {
-		importWriter.addImport("java.util.logging.Logger", null);
+	private void addApacheLog4jLibrary() {
+		importWriter.addImport("org.apache.log4j.Logger", null);
+		importWriter.addImport("org.apache.log4j.PropertyConfigurator",null);
+		
+		
 	}
 	
 	private void addLoggerField() {
@@ -281,7 +283,7 @@ public class TEFBExtractMethodRefactoring extends org.eclipse.jdt.internal.corex
 				FieldDeclaration test = (FieldDeclaration) node;
 				for(VariableDeclarationFragment vdf : (List<VariableDeclarationFragment>)test.fragments()) {
 					if (vdf.getName().getIdentifier().equals("logger")) {
-						if(vdf.resolveBinding().getType().getQualifiedName().equals("java.util.logging.Logger")) {
+						if(vdf.resolveBinding().getType().getQualifiedName().equals("org.apache.log4j.Logger")) {
 							return;
 						} else {
 							loggerName = "javaLogger";
@@ -320,6 +322,7 @@ public class TEFBExtractMethodRefactoring extends org.eclipse.jdt.internal.corex
 
 		FieldDeclaration fd = ast.newFieldDeclaration(vdf);
 		fd.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.PRIVATE_KEYWORD));
+		fd.modifiers().add(ast.newModifier(Modifier.ModifierKeyword.STATIC_KEYWORD));
 		fd.setType(ast.newSimpleType(ast.newName("Logger")));
 
 		ListRewrite list = rewrite.getListRewrite(td, TypeDeclaration.BODY_DECLARATIONS_PROPERTY);

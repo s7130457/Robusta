@@ -190,7 +190,7 @@ public class RLBuilder extends IncrementalProjectBuilder {
 	private CompilationUnit getRoot(IResource resource) {
 		IJavaElement javaElement = JavaCore.create(resource);
 
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 		parser.setSource((ICompilationUnit) javaElement);
 		parser.setResolveBindings(true);

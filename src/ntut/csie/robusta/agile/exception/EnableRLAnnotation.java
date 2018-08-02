@@ -9,11 +9,13 @@ import java.util.Iterator;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import ntut.csie.rleht.builder.ToggleNatureAction;
 import ntut.csie.util.PopupDialog;
 import ntut.csie.util.RLAnnotationFileUtil;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -45,70 +47,57 @@ public class EnableRLAnnotation implements IObjectActionDelegate {
 	
 	@Override
 	public void run(IAction action) {
-		if (selection instanceof IStructuredSelection) {
-			for (Iterator<?> it = ((IStructuredSelection) selection).iterator(); it
-					.hasNext();) {
-				Object element = it.next();
-				IProject project = null;
-				if (element instanceof IProject) {
-					project = (IProject) element;
-				} else if (element instanceof IAdaptable) {
-					project = (IProject) ((IAdaptable) element)
-							.getAdapter(IProject.class);
-				}
-				
-				if (project != null) {
-					enableRLAnnotation(project);
-					// save project to a final variable so that it can be used in Job,
-					// it should be safe for that project should not change over time
-					final IProject project2 = project;
-					Job job = new Job("Refreshing Project"){
-						protected IStatus run(IProgressMonitor monitor){
-							refreshProject(project2);
-							return Status.OK_STATUS;
-						}
-					};
-					job.setPriority(Job.SHORT);
-					job.schedule();
-				}
-			}
-		}
 	}
 	
-	private void enableRLAnnotation(IProject project) {
-		URL installURL = Platform.getInstallLocation().getURL();
-		Path eclipsePath = new Path(installURL.getPath());
-		JarFile RobustaJar = RLAnnotationFileUtil.getRobustaJar(eclipsePath);
-
-		JarEntry RLAnnotationJar = RLAnnotationFileUtil.getRLAnnotationJarEntry(project);
-		InputStream is = null;
-		
-		if(RLAnnotationJar != null) {
-			try {
-				File projLib = RLAnnotationFileUtil.getProjectLibFolder(project);
-				String RLAnnotationJarId = RLAnnotationFileUtil.extractRLAnnotationJarId(RLAnnotationJar.getName());
-				File fileDest = new File(projLib.toString() + "/" + RLAnnotationJarId);
-				is = RobustaJar.getInputStream(RLAnnotationJar);
+	
+	public static void enableRLAnnotation(IProject project) {
+		String []JarIdCollection = new String[]{"log4j","ntut.csie.robusta.agile.exception"};
+		for(String jarId : JarIdCollection){
+			RLAnnotationFileUtil.setRLAnnotationJarId(jarId);
+			URL installURL = Platform.getInstallLocation().getURL();
+			Path eclipsePath = new Path(installURL.getPath());
+			JarFile RobustaJar = RLAnnotationFileUtil.getRobustaJar(eclipsePath);
+			JarEntry RLAnnotationJar = RLAnnotationFileUtil.getRLAnnotationJarEntry(project);
+			InputStream is = null;
+			
+			if(RLAnnotationJar != null) {
+				try {
+					File projLib = RLAnnotationFileUtil.getProjectLibFolder(project);
+					String RLAnnotationJarId = RLAnnotationFileUtil.extractRLAnnotationJarId(RLAnnotationJar.getName());
+					File fileDest = new File(projLib.toString() + "/" + RLAnnotationJarId);
+					is = RobustaJar.getInputStream(RLAnnotationJar);
+					
+					RLAnnotationFileUtil.copyFileUsingFileStreams(is, fileDest);
+					setBuildPath(project, fileDest);
+				} catch (IOException e) {
+					throw new RuntimeException("Functional failure: Fail to copy RLAnnotation jar to user lib", e);
+				} finally {
+					closeStream(is);
+				}
 				
-				RLAnnotationFileUtil.copyFileUsingFileStreams(is, fileDest);
-				setBuildPath(project, fileDest);
-			} catch (IOException e) {
-				throw new RuntimeException("Functional failure: Fail to copy RLAnnotation jar to user lib", e);
-			} finally {
-				closeStream(is);
+			} else {
+				showOneButtonPopUpMenu(
+						"Functional failure",
+						"Fail to locate Robusta jar in eclipse plugin folder, please make sure it's installed properly");
 			}
-		} else {
-			showOneButtonPopUpMenu(
-					"Functional failure",
-					"Fail to locate Robusta jar in eclipse plugin folder, please make sure it's installed properly");
 		}
+		final IProject project2 = project;
+		Job job = new Job("Refreshing Project"){
+			protected IStatus run(IProgressMonitor monitor){
+				refreshProject(project2);
+				return Status.OK_STATUS;
+			}
+		};
+		job.setPriority(Job.SHORT);
+		job.schedule();
+		
 	}
 
-	private void showOneButtonPopUpMenu(final String title, final String msg) {
+	private static void showOneButtonPopUpMenu(final String title, final String msg) {
 		PopupDialog.showDialog(title, msg);
 	}
 
-	private void refreshProject(IProject project) {
+	private static void refreshProject(IProject project) {
 		// build project to refresh
 		try {
 			project.build(IncrementalProjectBuilder.FULL_BUILD,
@@ -119,7 +108,7 @@ public class EnableRLAnnotation implements IObjectActionDelegate {
 		}
 	}
 
-	private void setBuildPath(IProject project, File fileAlreadyExistChecker) {
+	private static void setBuildPath(IProject project, File fileAlreadyExistChecker) {
 		// add path of agileException.jar to .classpath file of the project
 		try {
 			addClasspathEntryToBuildPath(JavaCore.newLibraryEntry(new Path(
@@ -145,7 +134,7 @@ public class EnableRLAnnotation implements IObjectActionDelegate {
 	/**
 	 * Add class path entry to inner project's class path
 	 */
-	public void addClasspathEntryToBuildPath(IClasspathEntry classpathEntry,
+	public static void addClasspathEntryToBuildPath(IClasspathEntry classpathEntry,
 			IProgressMonitor progressMonitor, IProject proj)
 			throws JavaModelException {
 		IJavaProject javaProject = JavaCore.create(proj);
@@ -153,11 +142,7 @@ public class EnableRLAnnotation implements IObjectActionDelegate {
 
 		// if class path for AgileException.jar is already set, bypass
 		// setting procedures
-		if (classPathExist) {
-			showOneButtonPopUpMenu("Oops...",
-			"Robustness Level annotation already enabled :)");
-			return;
-		} else {
+		if (!classPathExist) {
 			IClasspathEntry[] existedEntries = javaProject.getRawClasspath();
 			IClasspathEntry[] extendedEntries = new IClasspathEntry[existedEntries.length + 1];
 			System.arraycopy(existedEntries, 0, extendedEntries, 0,
@@ -167,7 +152,7 @@ public class EnableRLAnnotation implements IObjectActionDelegate {
 		}
 	}
 	
-	private void closeStream(Closeable io) {
+	private static void closeStream(Closeable io) {
 		try {
 			if (io != null)
 				io.close();

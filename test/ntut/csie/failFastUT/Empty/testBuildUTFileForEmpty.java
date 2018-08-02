@@ -53,7 +53,7 @@ public class testBuildUTFileForEmpty {
 		setUpTestingEnvironment();
 		detectPrintStackTrace();
 		markerInfos = visitCompilationAndGetSmellList();
-		setUpMethodIndexOfMarkerInfo();
+		setUpMethodDeclarationIndexOfMarkerInfo();
 		resoluation = new AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock(
 				"test");
 		addAspectsMarkerResoluationExamplePath = new Path(
@@ -79,23 +79,23 @@ public class testBuildUTFileForEmpty {
 		smellSettings = environmentBuilder.getSmellSettings();
 	}
 
-	private void setUpMethodIndexOfMarkerInfo() throws JavaModelException {
+	private void setUpMethodDeclarationIndexOfMarkerInfo() throws JavaModelException {
 		ASTMethodCollector methodCollector = new ASTMethodCollector();
 		compilationUnit.accept(methodCollector);
 
 		for (MarkerInfo m : markerInfos) {
 
-			for (MethodDeclaration method : methodCollector.getMethodList()) {
-				int methodIdx = -1;
-				methodIdx++;
+			int methodDeclarationIdx = -1;
+			for (MethodDeclaration methodDeclarationBlock : methodCollector.getMethodList()) {
+				methodDeclarationIdx++;
 				MethodDeclarationVisitor declarationVisitor = new MethodDeclarationVisitor(
 						compilationUnit);
-				method.accept(declarationVisitor);
+				methodDeclarationBlock.accept(declarationVisitor);
 
 				for (Integer a_integer : declarationVisitor
 						.getCatchClauseLineNumberList()) {
 					if (m.getLineNumber() == (int) a_integer) {
-						m.setMethodIndex(methodIdx);
+						m.setMethodIndex(methodDeclarationIdx);
 						break;
 					}
 				}
@@ -148,8 +148,8 @@ public class testBuildUTFileForEmpty {
 
 	@Test
 	public void createPackageTest() {
-		int theFirstMarkerInfo = 0;
-		marker = getSpecificMarkerByMarkerInfoIndex(theFirstMarkerInfo);
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
 		AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock markerResoluationForDummyAndEmpty = new AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock(
 				"test");
 		markerResoluationForDummyAndEmpty.setMarker(marker);
@@ -177,10 +177,13 @@ public class testBuildUTFileForEmpty {
 		return content;
 	}
 
+	/**
+	 * badSmellLightBallIndex is the specific bad smell light ball index in this class
+	 */
 	@Test
-	public void buildTestFileTest() {
-		int theFirstMarkerInfo = 0;
-		marker = getSpecificMarkerByMarkerInfoIndex(theFirstMarkerInfo);
+	public void testBuildTestFileForStaticMethod() {
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
 		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
 		AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock marker = new AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock(
 				"test");
@@ -193,7 +196,53 @@ public class testBuildUTFileForEmpty {
 		String Actual = marker.buildTestFile(config,packageChain,filePathUTFile).replaceAll("\\s", "");
 		String currentDirPath = System.getProperty("user.dir");
 		String packages = currentDirPath + File.separator
-				+ "test/ntut/csie/failFastUT/Empty/EmptyUTFileExcepted";
+				+ "test/ntut/csie/failFastUT/Empty/UT4StaticMethodExpected";
+		File file = new File(packages);
+		String aspectContentExpected = "";
+		aspectContentExpected = readFile(file).replaceAll("\\s", "");
+		Assert.assertEquals(aspectContentExpected,Actual);
+	}
+	
+	@Test
+	public void testBuildTestFileForPublicMethod() {
+		int badSmellLightBallIndex = 1;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
+		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
+		AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock marker = new AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock(
+				"test");
+		String packageChain = AspectPackage;
+		String workSpacePath = ResourcesPlugin.getWorkspace().getRoot()
+				.getLocation().toString();
+		String createPackagePath = workSpacePath + "/" + addpackagePath;
+		String filePathUTFile = createPackagePath + "/testUTFile.java";
+
+		String Actual = marker.buildTestFile(config,packageChain,filePathUTFile).replaceAll("\\s", "");
+		String currentDirPath = System.getProperty("user.dir");
+		String packages = currentDirPath + File.separator
+				+ "test/ntut/csie/failFastUT/Empty/UT4PublicMethodExpected";
+		File file = new File(packages);
+		String aspectContentExpected = "";
+		aspectContentExpected = readFile(file).replaceAll("\\s", "");
+		Assert.assertEquals(aspectContentExpected,Actual);
+	}
+	
+	@Test
+	public void testBuildTestFileForPrivateMethod() {
+		int badSmellLightBallIndex = 2;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
+		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
+		AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock marker = new AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock(
+				"test");
+		String packageChain = AspectPackage;
+		String workSpacePath = ResourcesPlugin.getWorkspace().getRoot()
+				.getLocation().toString();
+		String createPackagePath = workSpacePath + "/" + addpackagePath;
+		String filePathUTFile = createPackagePath + "/testUTFile.java";
+
+		String Actual = marker.buildTestFile(config,packageChain,filePathUTFile).replaceAll("\\s", "");
+		String currentDirPath = System.getProperty("user.dir");
+		String packages = currentDirPath + File.separator
+				+ "test/ntut/csie/failFastUT/Empty/UT4PrivateMethodExpected";
 		File file = new File(packages);
 		String aspectContentExpected = "";
 		aspectContentExpected = readFile(file).replaceAll("\\s", "");

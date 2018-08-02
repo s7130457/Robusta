@@ -58,9 +58,9 @@ public class ASTHandler {
 			try {
 
 				startTime = System.currentTimeMillis();
-				root = wc.reconcile(AST.JLS3, true, statementsRecovery, null, null);
+				root = wc.reconcile(AST.JLS8, true, statementsRecovery, null, null);
 
-				ASTParser parser = ASTParser.newParser(AST.JLS3);
+				ASTParser parser = ASTParser.newParser(AST.JLS8);
 				parser.setKind(ASTParser.K_COMPILATION_UNIT);
 				
 				if (input instanceof ICompilationUnit) {
@@ -83,7 +83,7 @@ public class ASTHandler {
 		} else {
 			ConsoleLog.debug("[ASTHandler][createAST]==>ASTParser.newParser");
 
-			ASTParser parser = ASTParser.newParser(AST.JLS3);
+			ASTParser parser = ASTParser.newParser(AST.JLS8);
 			parser.setResolveBindings(true);
 			if (input instanceof ICompilationUnit) {
 				parser.setSource((ICompilationUnit) input);

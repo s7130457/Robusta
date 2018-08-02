@@ -127,7 +127,7 @@ public class RLQuickFix extends BaseQuickFix implements IMarkerResolution, IMark
 					this.actOpenable = (IOpenable) javaElement;
 				}
 
-				ASTParser parser = ASTParser.newParser(AST.JLS3);
+				ASTParser parser = ASTParser.newParser(AST.JLS8);
 				parser.setKind(ASTParser.K_COMPILATION_UNIT);
 
 				parser.setSource((ICompilationUnit) javaElement);

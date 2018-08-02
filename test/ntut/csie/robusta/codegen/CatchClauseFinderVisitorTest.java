@@ -50,7 +50,7 @@ public class CatchClauseFinderVisitorTest {
 				+ javaFile2String.getFileContent());
 		
 		Path path = new Path(PathUtils.getPathOfClassUnderSrcFolder(CatchClauseSampleCode.class, testProjectName));
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 		parser.setSource(JavaCore.createCompilationUnitFrom(ResourcesPlugin.getWorkspace().getRoot().getFile(path)));
 		parser.setResolveBindings(true);

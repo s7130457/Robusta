@@ -14,6 +14,7 @@ import org.eclipse.ui.IMarkerResolution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 public class MoveCodeIntoBigOuterTryQuickFix implements IMarkerResolution{
 	private static Logger logger = LoggerFactory.getLogger(MoveCodeIntoBigOuterTryQuickFix.class);
 
@@ -22,7 +23,6 @@ public class MoveCodeIntoBigOuterTryQuickFix implements IMarkerResolution{
 	private String label;
 	//record type of code smell 
 	private String problem;
-
 	public MoveCodeIntoBigOuterTryQuickFix(String label) {
 		this.label = label;
 		quickFixCore = new QuickFixCore();
@@ -63,7 +63,7 @@ public class MoveCodeIntoBigOuterTryQuickFix implements IMarkerResolution{
 				return methodIdx;
 			}
 
-			methodIdx = (String) marker.getAttribute(RLMarkerAttribute.RL_METHOD_INDEX);
+			methodIdx = (String) marker.getAttribute(RLMarkerAttribute.RL_METHOD_INDEX);//得知是在第幾個MethodDec
 			marker.getAttribute(RLMarkerAttribute.RL_INFO_SRC_POS).toString();
 			
 		} catch (CoreException e) {

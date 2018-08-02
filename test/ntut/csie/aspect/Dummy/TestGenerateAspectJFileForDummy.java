@@ -173,13 +173,13 @@ public class TestGenerateAspectJFileForDummy {
 		String createPackagePath = workSpacePath + "/" + addpackagePath;
 		String filePathAspectJFile = createPackagePath + "/testAspectJFile.aj";
 		String Actual = config.buildUpAspectsFile(packageChain,
-				filePathAspectJFile);
+				filePathAspectJFile).replaceAll("\\s", "");
 		String currentDirPath = System.getProperty("user.dir");
 		String packages = currentDirPath + File.separator
 				+ "test/ntut/csie/aspect/Dummy/AJFileExcepted";
 		File file = new File(packages);
 		String aspectContentExpected = "";
-		aspectContentExpected = readFile(file);
+		aspectContentExpected = readFile(file).replaceAll("\\s", "");
 		Assert.assertEquals(aspectContentExpected, Actual);
 	}
 
@@ -204,11 +204,12 @@ public class TestGenerateAspectJFileForDummy {
 		String packages = currentDirPath + File.separator
 				+ "test/ntut/csie/aspect/AspectJSwitchExpected";
 		File file = new File(packages);
-		String excepted = readFile(file);
+		String excepted = readFile(file).replaceAll("\\s", "");
 		AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock am = new AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock(
 				"add Aspect");
 		String packageChain = "ntut.csie.aspect";
-		Assert.assertEquals(excepted, am.buildUpAspectJSwitch(packageChain));
+		String actual = am.buildUpAspectJSwitch(packageChain).replaceAll("\\s", "");
+		Assert.assertEquals(excepted, actual);
 
 	}
 

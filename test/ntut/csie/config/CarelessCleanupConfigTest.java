@@ -51,7 +51,7 @@ public class CarelessCleanupConfigTest {
 	public void setUp() throws Exception {
 		setUpTestingEnvironment();
 		markerInfos = visitCompilationUnitCarelessCleanupAndGetSmellList();
-		setUpMethodIndexOfMarkerInfo();
+		setUpMethodDeclarationIndexOfMarkerInfo();
 		CarelessCleanupResoluation = new AddAspectsMarkerResoluationForCarelessCleanup(
 				"test");
 		CarelessCleanupExamplePath = new Path(
@@ -83,22 +83,22 @@ public class CarelessCleanupConfigTest {
 		smellSettings = environmentBuilder.getSmellSettings();
 	}
 
-	private void setUpMethodIndexOfMarkerInfo() throws JavaModelException {
+	private void setUpMethodDeclarationIndexOfMarkerInfo() throws JavaModelException {
 		ASTMethodCollector methodCollector = new ASTMethodCollector();
 		compilationUnit.accept(methodCollector);
 
 		for (MarkerInfo m : markerInfos) {
-			int methodIdx = -1;
-			for (MethodDeclaration declaration : methodCollector
+			int methodDeclarationIdx = -1;
+			for (MethodDeclaration methodDeclarationBlock : methodCollector
 					.getMethodList()) {
-				methodIdx++;
+				methodDeclarationIdx++;
 				MethodInvocationCollectorVisitor methodInvocationCollector = new MethodInvocationCollectorVisitor();
-				declaration.accept(methodInvocationCollector);
+				methodDeclarationBlock.accept(methodInvocationCollector);
 				for (MethodInvocation invocation : methodInvocationCollector
 						.getMethodInvocations()) {
 					if (m.getLineNumber() == compilationUnit
 							.getLineNumber(invocation.getStartPosition())) {
-						m.setMethodIndex(methodIdx);
+						m.setMethodIndex(methodDeclarationIdx);
 						break;
 					}
 
@@ -176,6 +176,72 @@ public class CarelessCleanupConfigTest {
 		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
 		List<String> actual = builder.getCollectBadSmellExceptionTypes();
 		Assert.assertEquals(expected, actual);
+	}
+	
+	@Test 
+	public void testGetMethodCallerFirstLightBallForStaticMethod() {
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,CarelessCleanupExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "carelessCleanupExample.callStaticMethod();";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerSecondLightBallForStaticMethod() {
+		int badSmellLightBallIndex = 1;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,CarelessCleanupExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "carelessCleanupExample.callStaticMethod();";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerFirstLightBallForPublicMethod() {
+		int badSmellLightBallIndex = 2;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,CarelessCleanupExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "carelessCleanupExample object = new carelessCleanupExample();\n\t\t\tobject.callPublicMethod();";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerSecondLightBallForPublicMethod() {
+		int badSmellLightBallIndex = 3;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,CarelessCleanupExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "carelessCleanupExample object = new carelessCleanupExample();\n\t\t\tobject.callPublicMethod();";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerFirstLightBallForPrivateMethod() {
+		int badSmellLightBallIndex = 4;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,CarelessCleanupExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "carelessCleanupExample object = new carelessCleanupExample();\n\t\t\t" +
+						"Method privateMethod = carelessCleanupExample.class.getDeclaredMethod(\"callPrivateMethod\");\n\t\t\t" +
+						"privateMethod.setAccessible(true);\n\t\t\t" +
+						"privateMethod.invoke(object);";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerSecondLightBallForPrivateMethod() {
+		int badSmellLightBallIndex = 5;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,CarelessCleanupExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "carelessCleanupExample object = new carelessCleanupExample();\n\t\t\t" +
+						"Method privateMethod = carelessCleanupExample.class.getDeclaredMethod(\"callPrivateMethod\");\n\t\t\t" +
+						"privateMethod.setAccessible(true);\n\t\t\t" +
+						"privateMethod.invoke(object);";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
 	}
 
 }

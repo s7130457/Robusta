@@ -12,6 +12,7 @@ import java.util.jar.JarFile;
 
 import ntut.csie.filemaker.JavaProjectMaker;
 import ntut.csie.robusta.agile.exception.EnableRLAnnotation;
+import ntut.csie.util.RLAnnotationFileUtil;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspace;
@@ -28,6 +29,7 @@ import org.junit.Test;
 
 public class EnableRLAnnotationTest {
 	private EnableRLAnnotation enableRLAnnotation;
+	private RLAnnotationFileUtil RLAnnotationFileUtil;
 	JarFile answerJar = null;
 	IWorkspace workspace;
 	IWorkspaceRoot root;
@@ -39,6 +41,7 @@ public class EnableRLAnnotationTest {
 	@Before
 	public void setUp() throws Exception {
 		enableRLAnnotation = new EnableRLAnnotation();
+		RLAnnotationFileUtil = new RLAnnotationFileUtil();
 		String projectname = "MyProject";
 		javaProjectMaker = new JavaProjectMaker(projectname);
 		javaProjectMaker.setJREDefaultContainer();
@@ -65,6 +68,10 @@ public class EnableRLAnnotationTest {
 					.getDeclaredMethod("setBuildPath", IProject.class,
 							File.class);
 			testSetBuildPathMethod.setAccessible(true);
+			Method setRLAnnotationJarId = RLAnnotationFileUtil.class
+			.getDeclaredMethod("setRLAnnotationJarId", String.class);
+			setRLAnnotationJarId.setAccessible(true);
+	        setRLAnnotationJarId.invoke(RLAnnotationFileUtil, "ntut.csie.robusta.agile.exception");
 			testSetBuildPathMethod.invoke(enableRLAnnotation, project, fileDest);
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);

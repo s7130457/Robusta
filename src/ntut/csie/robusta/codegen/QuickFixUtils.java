@@ -142,7 +142,7 @@ public class QuickFixUtils {
 	@SuppressWarnings("unchecked")
 	public static void addThrowExceptionOnMethodDeclaration(AST ast, MethodDeclaration methodDeclaration, String exceptionName) {
 		// TODO unchecked type
-		List<SimpleName> thrownExceptions = methodDeclaration.thrownExceptions();
+		List<SimpleName> thrownExceptions = methodDeclaration.thrownExceptionTypes();
 		//add an exception declaration if there are not any exception declaration.
 		if(thrownExceptions.size() == 0) {
 			thrownExceptions.add(ast.newSimpleName(exceptionName));
@@ -296,7 +296,7 @@ public class QuickFixUtils {
 				IJavaElement javaElement = JavaCore.create(resource);
 				
 				//Create AST to parse
-				ASTParser parser = ASTParser.newParser(AST.JLS3);
+				ASTParser parser = ASTParser.newParser(AST.JLS8);
 				parser.setKind(ASTParser.K_COMPILATION_UNIT);
 	
 				parser.setSource((ICompilationUnit) javaElement);
@@ -330,6 +330,17 @@ public class QuickFixUtils {
 	 */
 	public static ASTNode generateThrowExceptionForDeclaration(AST ast, Class<?> exceptionType) {
 		SimpleName sn = ast.newSimpleName(exceptionType.getSimpleName());
+		return sn;
+	}
+	
+	/**
+	 * generate an exception declaration which will be thrown
+	 * @param ast
+	 * @param exceptionType
+	 * @return
+	 */
+	public static ASTNode generateThrowExceptionForDeclaration(AST ast, String exceptionType) {
+		SimpleName sn = ast.newSimpleName(exceptionType);
 		return sn;
 	}
 	

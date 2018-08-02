@@ -2,17 +2,33 @@ package ntut.csie.TestAspectPackage;
 
 import ntut.csie.failFastUT.Thrown.thrownFromFinallyExample;
 import java.io.IOException;
+import ntut.csie.RobustaUtils.CustomRobustaException;
+import ntut.csie.RobustaUtils.AspectJSwitch;
 
 public aspect thrownFromFinallyExampleAspectException {
-	before() throws IOException: (call(* *(..) throws IOException) || call(*.new(..) throws IOException)) && within(thrownFromFinallyExample){
 
+	before() throws IOException: (call(* *.close(..) throws IOException)) && within(thrownFromFinallyExample){
 	String name = thisJoinPoint.getSignature().getName();
-	if (thisJoinPoint.getKind().equals("constructor-call"))
-		name = thisJoinPoint.getSignature().getDeclaringTypeName().substring(thisJoinPoint.getSignature().getDeclaringTypeName().lastIndexOf(".") + 1);
-	String resp = AspectJSwitch.getInstance().nextAction(name);
-	if (resp.equals("f(IOException)"))
-		throw new IOException();
+	String operation = AspectJSwitch.getInstance().getOperation(name);
+	if (operation.equals("f(IOException)"))
+		throw new IOException("This Exception is thrown from finally block, so it is a Exception Thrown From Finally Block bad smell.");
 
+	}
+	
+	before(): (call(* *(..) throws IOException)) && withincode(* thrownFromFinallyExample.callStaticMethod(..)){
+	String name = thisJoinPoint.getSignature().getName();
+	String operation = AspectJSwitch.getInstance().getOperation(name);
+	if (operation.equals("f(CustomRobustaException)"))
+		throw new CustomRobustaException("This Exception is thrown from try/catch block, so the bad smell is removed.");
+
+	}
+	
+	Object around():(call(* *(..))||call(*.new(..))) && withincode (* thrownFromFinallyExample.*(..)){
+		try{
+			return proceed();
+		}catch(Exception e){
+			return null;
+		}
 	}
 	
 }
@@ -22,17 +38,33 @@ package ntut.csie.TestAspectPackage;
 
 import ntut.csie.failFastUT.Thrown.thrownFromFinallyExample;
 import java.io.IOException;
+import ntut.csie.RobustaUtils.CustomRobustaException;
+import ntut.csie.RobustaUtils.AspectJSwitch;
 
 public aspect thrownFromFinallyExampleAspectException {
-	before() throws IOException: (call(* *(..) throws IOException) || call(*.new(..) throws IOException)) && within(thrownFromFinallyExample){
-
+	
+	before() throws IOException: (call(* *.close(..) throws IOException)) && within(thrownFromFinallyExample){
 	String name = thisJoinPoint.getSignature().getName();
-	if (thisJoinPoint.getKind().equals("constructor-call"))
-		name = thisJoinPoint.getSignature().getDeclaringTypeName().substring(thisJoinPoint.getSignature().getDeclaringTypeName().lastIndexOf(".") + 1);
-	String resp = AspectJSwitch.getInstance().nextAction(name);
-	if (resp.equals("f(IOException)"))
-		throw new IOException();
+	String operation = AspectJSwitch.getInstance().getOperation(name);
+	if (operation.equals("f(IOException)"))
+		throw new IOException("This Exception is thrown from finally block, so it is a Exception Thrown From Finally Block bad smell.");
 
+	}
+	
+	before(): (call(* *(..) throws IOException)) && withincode(* thrownFromFinallyExample.callStaticMethod(..)){
+	String name = thisJoinPoint.getSignature().getName();
+	String operation = AspectJSwitch.getInstance().getOperation(name);
+	if (operation.equals("f(CustomRobustaException)"))
+		throw new CustomRobustaException("This Exception is thrown from try/catch block, so the bad smell is removed.");
+
+	}
+	
+	Object around():(call(* *(..))||call(*.new(..))) && withincode (* thrownFromFinallyExample.*(..)){
+		try{
+			return proceed();
+		}catch(Exception e){
+			return null;
+		}
 	}
 	
 }
@@ -42,17 +74,33 @@ package ntut.csie.TestAspectPackage;
 
 import ntut.csie.failFastUT.Thrown.thrownFromFinallyExample;
 import java.sql.SQLException;
+import java.io.IOException;
+import ntut.csie.RobustaUtils.CustomRobustaException;
+import ntut.csie.RobustaUtils.AspectJSwitch;
 
 public aspect thrownFromFinallyExampleAspectException {
-	before() throws SQLException: (call(* *(..) throws SQLException) || call(*.new(..) throws SQLException)) && within(thrownFromFinallyExample){
-
+	
+	before() throws SQLException: (call(* *.throwEx(..) throws SQLException)) && within(thrownFromFinallyExample){
 	String name = thisJoinPoint.getSignature().getName();
-	if (thisJoinPoint.getKind().equals("constructor-call"))
-		name = thisJoinPoint.getSignature().getDeclaringTypeName().substring(thisJoinPoint.getSignature().getDeclaringTypeName().lastIndexOf(".") + 1);
-	String resp = AspectJSwitch.getInstance().nextAction(name);
-	if (resp.equals("f(SQLException)"))
-		throw new SQLException();
+	String operation = AspectJSwitch.getInstance().getOperation(name);
+	if (operation.equals("f(SQLException)"))
+		throw new SQLException("This Exception is thrown from finally block, so it is a Exception Thrown From Finally Block bad smell.");
 
 	}
 	
+	before(): (call(* *(..) throws IOException)) && withincode(* thrownFromFinallyExample.callStaticMethod(..)){
+	String name = thisJoinPoint.getSignature().getName();
+	String operation = AspectJSwitch.getInstance().getOperation(name);
+	if (operation.equals("f(CustomRobustaException)"))
+		throw new CustomRobustaException("This Exception is thrown from try/catch block, so the bad smell is removed.");
+
+	}
+	
+	Object around():(call(* *(..))||call(*.new(..))) && withincode (* thrownFromFinallyExample.*(..)){
+		try{
+			return proceed();
+		}catch(Exception e){
+			return null;
+		}
+	}
 }

@@ -54,7 +54,7 @@ public class EmptyCatchBlockConfigTest {
 		setUpTestingEnvironment();
 		detectPrintStackTrace();
 		markerInfos = visitCompilationAndGetSmellList();
-		setUpMethodIndexOfMarkerInfo();
+		setUpMethodDeclarationIndexOfMarkerInfo();
 		resoluation = new AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock(
 				"test");
 		addAspectsMarkerResoluationExamplePath = new Path(
@@ -76,23 +76,23 @@ public class EmptyCatchBlockConfigTest {
 		smellSettings = environmentBuilder.getSmellSettings();
 	}
 
-	private void setUpMethodIndexOfMarkerInfo() throws JavaModelException {
+	private void setUpMethodDeclarationIndexOfMarkerInfo() throws JavaModelException {
 		ASTMethodCollector methodCollector = new ASTMethodCollector();
 		compilationUnitDummyAndEmpty.accept(methodCollector);
 
 		for (MarkerInfo m : markerInfos) {
 
-			for (MethodDeclaration method : methodCollector.getMethodList()) {
-				int methodIdx = -1;
-				methodIdx++;
+			int methodDeclarationIdx = -1;
+			for (MethodDeclaration methodDeclarationBlock : methodCollector.getMethodList()) {
+				methodDeclarationIdx++;
 				MethodDeclarationVisitor declarationVisitor = new MethodDeclarationVisitor(
 						compilationUnitDummyAndEmpty);
-				method.accept(declarationVisitor);
+				methodDeclarationBlock.accept(declarationVisitor);
 
 				for (Integer a_integer : declarationVisitor
 						.getCatchClauseLineNumberList()) {
 					if (m.getLineNumber() == (int) a_integer) {
-						m.setMethodIndex(methodIdx);
+						m.setMethodIndex(methodDeclarationIdx);
 						break;
 					}
 				}
@@ -106,11 +106,14 @@ public class EmptyCatchBlockConfigTest {
 	public void tearDown() throws Exception {
 		environmentBuilder.cleanEnvironment();
 	}
-
+	
+	/**
+	 * badSmellLightBallIndex is the specific bad smell light ball index in this class
+	 */
 	@Test
 	public void getMethodDeclarationWhichHasBadSmellFirstMarkerTest() {
-		int theFirstMarkerInfo = 0;
-		marker = getSpecificMarkerByMarkerInfoIndex(theFirstMarkerInfo, addAspectsMarkerResoluationExamplePath );
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex, addAspectsMarkerResoluationExamplePath );
 		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
 		String methodDeclarationWhichHasBadSmellExpected = "";
 
@@ -133,17 +136,17 @@ public class EmptyCatchBlockConfigTest {
 	}
 	@Test
 	public void getBadSmellLineNumberFirstTest() {
-		int theFirstMarkerInfo = 0;
-		marker = getSpecificMarkerByMarkerInfoIndex(theFirstMarkerInfo,addAspectsMarkerResoluationExamplePath);
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,addAspectsMarkerResoluationExamplePath);
 		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
 		Assert.assertEquals(20, builder.getBadSmellLineNumber());
 	}
 	@Test
 	public void getAllMethodThrowInSpecificExceptionListTest(){
-		int theFirstMarkerInfo = 0;
-		marker = getSpecificMarkerByMarkerInfoIndex(theFirstMarkerInfo,addAspectsMarkerResoluationExamplePath);
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,addAspectsMarkerResoluationExamplePath);
 		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
-		String Actual = builder.getAllMethodThrowInSpecificExceptionList().toString();
+		String Actual = builder.getFirstInvocationSameAsCatch().toString();
 		String Excepted = "[getConnection]";
 		Assert.assertEquals(Excepted, Actual);
 	}
@@ -204,8 +207,8 @@ public class EmptyCatchBlockConfigTest {
 		StringBuilder strBuilder = null;
 		List<String> catchClauseList = new ArrayList<String>();
 
-		int theFirstMarkerInfo = 0;
-		marker = getSpecificMarkerByMarkerInfoIndex(theFirstMarkerInfo,addAspectsMarkerResoluationExamplePath);
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,addAspectsMarkerResoluationExamplePath);
 		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
 
 		try {
@@ -216,8 +219,6 @@ public class EmptyCatchBlockConfigTest {
 			catchClausesExpected = catchClausesExpected.substring(0,
 					catchClausesExpected.lastIndexOf("}"))
 					.replaceAll("\\s", "");
-			System.out
-					.println("catchClausesExpected = " + catchClausesExpected);
 			strBuilder = new StringBuilder(catchClausesExpected);
 			strBuilder.insert(catchClausesExpected.indexOf('}') + 1, ',');
 			catchClauseList = Arrays.asList(strBuilder.toString().split(","));
@@ -229,15 +230,14 @@ public class EmptyCatchBlockConfigTest {
 			e.printStackTrace();
 		}
 
-		System.out.println("catchClausesActually = " + catchClausesActually);
 		Assert.assertEquals(catchClausesExpected, catchClausesActually);
 	}
 
 	@Test
 	public void getExceptionTypeFirstTest() {
 		String catchClausesActually = "";
-		int theFirstMarkerInfo = 0;
-		marker = getSpecificMarkerByMarkerInfoIndex(theFirstMarkerInfo,addAspectsMarkerResoluationExamplePath);
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,addAspectsMarkerResoluationExamplePath);
 		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
 		catchClausesActually = builder.getExceptionType().toString();
 		Assert.assertEquals("SQLException", catchClausesActually);
@@ -254,8 +254,8 @@ public class EmptyCatchBlockConfigTest {
 	@Test
 	public void getClassNameTest() {
 		String classNameActually = "";
-		int theFirstMarkerInfo = 0;
-		marker = getSpecificMarkerByMarkerInfoIndex(theFirstMarkerInfo,addAspectsMarkerResoluationExamplePath);
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,addAspectsMarkerResoluationExamplePath);
 		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
 		classNameActually = builder.getClassName();
 		Assert.assertEquals("AspectDemo", classNameActually);
@@ -287,6 +287,73 @@ public class EmptyCatchBlockConfigTest {
 			e.printStackTrace();
 		}
 		Assert.assertEquals(true, importObjectsExist);
+	}
+	
+	@Test 
+	public void testGetMethodCallerForStaticMethod() {
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,addAspectsMarkerResoluationExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "AspectDemo.callStaticMethod();";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+
+	@Test 
+	public void testGetMethodCallerForPublicMethod() {
+		int badSmellLightBallIndex = 1;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,addAspectsMarkerResoluationExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "AspectDemo object = new AspectDemo();\n\t\t\tobject.callPublicMethod();";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetMethodCallerForPrivateMethod() {
+		int badSmellLightBallIndex = 2;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,addAspectsMarkerResoluationExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "AspectDemo object = new AspectDemo();\n\t\t\t" +
+						"Method privateMethod = AspectDemo.class.getDeclaredMethod(\"callPrivateMethod\");\n\t\t\t" +
+						"privateMethod.setAccessible(true);\n\t\t\t" +
+						"privateMethod.invoke(object);";
+		Assert.assertEquals(Expected, builder.getMethodCaller(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetAssertionForStaticMethod() {
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,addAspectsMarkerResoluationExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "String exceptionMessage = e.getMessage().toString();\n\t\t\t"
+						+"Assert.assertTrue(exceptionMessage.contains(\"This exception is thrown from EmptyCatchBlock's unit test by using AspectJ.\"));";
+		Assert.assertEquals(Expected, builder.getAssertion(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetAssertionForPublicMethod() {
+		int badSmellLightBallIndex = 1;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,addAspectsMarkerResoluationExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "String exceptionMessage = e.getMessage().toString();\n\t\t\t"
+						+"Assert.assertTrue(exceptionMessage.contains(\"This exception is thrown from EmptyCatchBlock's unit test by using AspectJ.\"));";
+		Assert.assertEquals(Expected, builder.getAssertion(methodDeclaration));
+	}
+	
+	@Test 
+	public void testGetAssertionForPrivateMethod() {
+		int badSmellLightBallIndex = 2;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex,addAspectsMarkerResoluationExamplePath);
+		BadSmellTypeConfig builder = new BadSmellTypeConfig(marker);
+		MethodDeclaration methodDeclaration = builder.getMethodDeclarationWhichHasBadSmell();
+		String Expected = "String exceptionMessage = e.getCause().getMessage().toString();\n\t\t\t"
+						+"Assert.assertTrue(exceptionMessage.contains(\"This exception is thrown from EmptyCatchBlock's unit test by using AspectJ.\"));";
+		Assert.assertEquals(Expected, builder.getAssertion(methodDeclaration));
 	}
 
 	private String readAspectDemo() throws FileNotFoundException, IOException,

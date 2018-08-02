@@ -55,7 +55,7 @@ public class testBuildUTFileForCarelessCleanup {
 	public void setUp() throws Exception {
 		setUpTestingEnvironment();
 		markerInfos = visitCompilationAndGetSmellList();
-		setUpMethodIndexOfMarkerInfo();
+		setUpMethodDeclarationIndexOfMarkerInfo();
 		resoluation = new AddAspectsMarkerResoluationForCarelessCleanup("test");
 		addAspectsMarkerResoluationExamplePath = new Path(
 				"AddAspectsMarkerResoluationExampleProject"
@@ -82,22 +82,22 @@ public class testBuildUTFileForCarelessCleanup {
 		smellSettings = environmentBuilder.getSmellSettings();
 	}
 
-	private void setUpMethodIndexOfMarkerInfo() throws JavaModelException {
+	private void setUpMethodDeclarationIndexOfMarkerInfo() throws JavaModelException {
 		ASTMethodCollector methodCollector = new ASTMethodCollector();
 		compilationUnit.accept(methodCollector);
 
 		for (MarkerInfo m : markerInfos) {
-			int methodIdx = -1;
-			for (MethodDeclaration declaration : methodCollector
+			int methodDeclarationIdx = -1;
+			for (MethodDeclaration methodDeclarationBlock : methodCollector
 					.getMethodList()) {
-				methodIdx++;
+				methodDeclarationIdx++;
 				MethodInvocationCollectorVisitor methodInvocationCollector = new MethodInvocationCollectorVisitor();
-				declaration.accept(methodInvocationCollector);
+				methodDeclarationBlock.accept(methodInvocationCollector);
 				for (MethodInvocation invocation : methodInvocationCollector
 						.getMethodInvocations()) {
 					if (m.getLineNumber() == compilationUnit
 							.getLineNumber(invocation.getStartPosition())) {
-						m.setMethodIndex(methodIdx);
+						m.setMethodIndex(methodDeclarationIdx);
 						break;
 					}
 
@@ -155,10 +155,13 @@ public class testBuildUTFileForCarelessCleanup {
 		return content;
 	}
 
+	/**
+	 * badSmellLightBallIndex is the specific bad smell light ball index in this class
+	 */
 	@Test
-	public void buildTestFileFirstTest() {
-		int theFirstMarkerInfo = 0;
-		marker = getSpecificMarkerByMarkerInfoIndex(theFirstMarkerInfo);
+	public void testBuildUnitTestFileOfStaticMethod() {
+		int badSmellLightBallIndex = 0;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
 		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
 		AddAspectsMarkerResoluationForCarelessCleanup marker = new AddAspectsMarkerResoluationForCarelessCleanup(
 				"test");
@@ -172,17 +175,18 @@ public class testBuildUTFileForCarelessCleanup {
 		Actual = Actual.replaceAll("\\s", "");
 		String currentDirPath = System.getProperty("user.dir");
 		String packages = currentDirPath + File.separator
-				+ "test/ntut/csie/failFastUT/CarelessCleanup/CarelessCleanupUTFileExpected";
+				+ "test/ntut/csie/failFastUT/CarelessCleanup/UT4StaticMethodExpected";
 		File file = new File(packages);
 		String utContentExpected = "";
 		utContentExpected = readFile(file);
 		utContentExpected = utContentExpected.split("@end")[0].replaceAll("\\s", "");
 		Assert.assertEquals(utContentExpected, Actual);
 	}
+	
 	@Test
-	public void buildTestFileSecondTest() {
-		int theSecondMarkerInfo = 1;
-		marker = getSpecificMarkerByMarkerInfoIndex(theSecondMarkerInfo);
+	public void testBuildUnitTestFileOfPublicMethod() {
+		int badSmellLightBallIndex = 2;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
 		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
 		AddAspectsMarkerResoluationForCarelessCleanup marker = new AddAspectsMarkerResoluationForCarelessCleanup(
 				"test");
@@ -193,13 +197,39 @@ public class testBuildUTFileForCarelessCleanup {
 		String filePathUTFile = createPackagePath + "/testUTFile.java";
 		String Actual = marker.buildTestFile(config, packageChain,
 				filePathUTFile).replaceAll("\\s", "");
+		Actual = Actual.replaceAll("\\s", "");
 		String currentDirPath = System.getProperty("user.dir");
 		String packages = currentDirPath + File.separator
-				+ "test/ntut/csie/failFastUT/CarelessCleanup/CarelessCleanupUTFileExpected";
+				+ "test/ntut/csie/failFastUT/CarelessCleanup/UT4PublicMethodExpected";
 		File file = new File(packages);
 		String utContentExpected = "";
 		utContentExpected = readFile(file);
-		utContentExpected = utContentExpected.split("@end")[1].replaceAll("\\s", "");
+		utContentExpected = utContentExpected.split("@end")[0].replaceAll("\\s", "");
+		Assert.assertEquals(utContentExpected, Actual);
+	}
+
+	@Test
+	public void testBuildUnitTestFileOfPrivateMethod() {
+		int badSmellLightBallIndex = 4;
+		marker = getSpecificMarkerByMarkerInfoIndex(badSmellLightBallIndex);
+		BadSmellTypeConfig config = new BadSmellTypeConfig(marker);
+		AddAspectsMarkerResoluationForCarelessCleanup marker = new AddAspectsMarkerResoluationForCarelessCleanup(
+				"test");
+		String packageChain = AspectPackage;
+		String workSpacePath = ResourcesPlugin.getWorkspace().getRoot()
+				.getLocation().toString();
+		String createPackagePath = workSpacePath + "/" + addpackagePath;
+		String filePathUTFile = createPackagePath + "/testUTFile.java";
+		String Actual = marker.buildTestFile(config, packageChain,
+				filePathUTFile).replaceAll("\\s", "");
+		Actual = Actual.replaceAll("\\s", "");
+		String currentDirPath = System.getProperty("user.dir");
+		String packages = currentDirPath + File.separator
+				+ "test/ntut/csie/failFastUT/CarelessCleanup/UT4PrivateMethodExpected";
+		File file = new File(packages);
+		String utContentExpected = "";
+		utContentExpected = readFile(file);
+		utContentExpected = utContentExpected.split("@end")[0].replaceAll("\\s", "");
 		Assert.assertEquals(utContentExpected, Actual);
 	}
 

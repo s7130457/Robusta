@@ -46,7 +46,7 @@ public class ASTCatchCollectTest extends TestCase {
 		
 		Path nestedTryExamplePath = new Path(PathUtils.getPathOfClassUnderSrcFolder(NestedTryStatementExample.class, testProjectName));
 		//Create AST to parse
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 
 		parser.setSource(

@@ -26,8 +26,12 @@ public class RLAnnotationFileUtil {
 	private static Logger logger = LoggerFactory.getLogger(RLAnnotationFileUtil.class);
 	// TODO globalize the pluginId and agileExceptionJarId
 	private final static String pluginId = RLEHTPlugin.PLUGIN_ID;
-	private final static String RLAnnotationJarId = "ntut.csie.robusta.agile.exception";
-
+	private  static String RLAnnotationJarId = "";
+	
+	public static  void setRLAnnotationJarId(String JarId){
+		RLAnnotationJarId = JarId;
+	}
+	
 	static public boolean doesRLAnnotationExistInClassPath(IJavaProject javaProject)
 			throws JavaModelException {
 		IClasspathEntry[] ICPEntry = javaProject.getRawClasspath();

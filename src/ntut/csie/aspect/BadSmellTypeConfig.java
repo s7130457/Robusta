@@ -4,7 +4,9 @@ import ntut.csie.analyzer.careless.CloseInvocationExecutionChecker;
 import ntut.csie.rleht.builder.RLMarkerAttribute;
 import ntut.csie.robusta.codegen.QuickFixCore;
 import ntut.csie.robusta.codegen.QuickFixUtils;
+
 import org.eclipse.core.resources.IMarker;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -15,9 +17,13 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import ntut.csie.util.MethodInvocationCollectorVisitor;
+import ntut.csie.util.NodeUtilsTest.MethodInvocationVisitor;
 import ntut.csie.util.PopupDialog;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.Block;
@@ -25,6 +31,7 @@ import org.eclipse.jdt.core.dom.CatchClause;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
@@ -39,14 +46,17 @@ public class BadSmellTypeConfig {
 	private TryStatement tryStatementWillBeInject;
 	private List<CatchClause> catchClauses;
 	private String exceptionType;
+	private String exceptionTypeForThrowFromFinally;
 	private String objectTypeOfInjectedMethod;// import用
 	private String badSmellType = "";
 	private String className;
 	private List<String> allMethodInvocationInMain;
 	private List<String> methodThrowInSpecificExceptionList;
-	private String methodInFinal;
+	private String specificMethodNameInFinal;
 	private List<String> collectBadSmellMethods;
 	private List<String> collectBadSmellExceptionTypes;
+	private HashMap map = new HashMap();
+	private int trystatementIndexInMethodDeclaration=-1;
 
 	public enum BadSmellType_enum {
 		DummyHandler, EmptyCatchBlock, UnprotectedMainProgram, ExceptionThrownFromFinallyBlock, CarelessCleanup
@@ -57,7 +67,6 @@ public class BadSmellTypeConfig {
 	public BadSmellTypeConfig(IMarker marker) {
 
 		badSmellType = getBadSmellType(marker);
-		System.out.println("badSmellType=" + badSmellType);
 		for (BadSmellType_enum tempBadSmellType : BadSmellType_enum.values()) {
 			if (tempBadSmellType.name().equals(badSmellType))
 				badSmellType_enum = tempBadSmellType;
@@ -83,100 +92,63 @@ public class BadSmellTypeConfig {
 			List<MethodInvocation> allMethodWhichWillThrowException = getMethodInvocationWhichWillThrowTheSameExceptionAsInput(
 					exceptionType, tryStatementWillBeInject);
 			for (MethodInvocation objectMethod : allMethodWhichWillThrowException) {
-				String specificException = objectMethod.resolveMethodBinding()
-						.getExceptionTypes()[0].getName();
-				if (specificException.equals(getExceptionType())) {
-					if (objectMethod.toString().indexOf(".") > -1) {
-						methodThrowInSpecificExceptionList
-								.add(objectMethod.toString()
-										.substring(
-												objectMethod.toString()
-														.indexOf(".") + 1,
-												objectMethod.toString()
-														.indexOf("(")));
-					} else {
-						methodThrowInSpecificExceptionList.add(objectMethod
-								.toString().substring(0,
-										objectMethod.toString().indexOf("(")));
+				int specificExceptionSize = objectMethod.resolveMethodBinding().getExceptionTypes().length;
+				for(int i=0; i<specificExceptionSize; i++){
+					String specificException = objectMethod.resolveMethodBinding().getExceptionTypes()[i].getName();
+					if (specificException.equals(getExceptionType())) {
+						String methodName = objectMethod.resolveMethodBinding().getName().toString();
+						methodThrowInSpecificExceptionList.add(methodName);
+						break;
 					}
 				}
-
+				if(methodThrowInSpecificExceptionList.size() != 0)
+					break;
 			}
-			objectTypeOfInjectedMethod = getTheObjectTypeOfMethodInvocation(allMethodWhichWillThrowException
-					.get(0));// 需要做這件事才能拿到正確import，但寫檔不需要傳這個參數
 			break;
 
 		case UnprotectedMainProgram:
 
 			exceptionType = "RuntimeException";
 
-			List<MethodInvocation> allMethod = getMethodInvocationWhichWillThrowExceptionAsInput();
+			List<MethodInvocation> allMethod = getAllMethodInvocation();
 			allMethodInvocationInMain = new ArrayList<String>();
 
 			tryStatements = getAllTryStatementOfMethodDeclaration(methodDeclarationWhichHasBadSmell);
 			// 找main裡面的所有catch、final裡的method
-			List<MethodInvocation> methodInCatchAndFinal = new ArrayList<MethodInvocation>();
-			methodInCatchAndFinal = addMethodInCatchAndFinal(tryStatements);
-
-			for (MethodInvocation objectMethod : allMethod) {
-				boolean objectMethodInCatchOrFinal = false;
-				// 比對getStartPosition
-				if (methodInCatchAndFinal != null) {// 先確定這個List不是null
-					for (MethodInvocation tmp : methodInCatchAndFinal) {
-						if (tmp.getStartPosition() == objectMethod
-								.getStartPosition()) {
-							objectMethodInCatchOrFinal = true;
-							break;
-						}
-					}
-				}
-				// allMethodInvocationInMain.add(要產生UT的method)
-				if (!objectMethodInCatchOrFinal) {
-					String tempMethod = "";
-					int position;
-					if (objectMethod.toString().contains(".")) {
-						position = objectMethod.toString().lastIndexOf('.');
-						tempMethod = objectMethod.toString().substring(
-								position + 1,
-								objectMethod.toString().indexOf('(', position));
-					} else {
-						tempMethod = objectMethod.toString().substring(0,
-								objectMethod.toString().lastIndexOf("("));
-					}
-
-					allMethodInvocationInMain.add(tempMethod);
-				}
-
-			}
+			List<MethodInvocation> methodInTryStatement = new ArrayList<MethodInvocation>();
+			methodInTryStatement = addMethodInTryStatement(tryStatements);
+			collectMethodInvocationOutOfTry(allMethod, methodInTryStatement);
 			break;
 		case ExceptionThrownFromFinallyBlock:
 			tryStatements = getAllTryStatementOfMethodDeclaration(methodDeclarationWhichHasBadSmell);
 			tryStatementWillBeInject = getTargetTryStetment(tryStatements,
 					badSmellLineNumber);
-
 			Block finallyBlock = tryStatementWillBeInject.getFinally();
-			MethodInvocation methodInvocationInFinal = getMethodInvocationInFinally(
+			MethodInvocation methodInvocationInFinal = getBadSmellInvocationFromFinally(
 					badSmellLineNumber, finallyBlock);
-			if (methodInvocationInFinal.toString().contains(".")) {
-				methodInFinal = methodInvocationInFinal.toString()
-						.substring(
-								methodInvocationInFinal.toString().lastIndexOf(
-										'.') + 1,
-								methodInvocationInFinal.toString().lastIndexOf(
-										'('));
+			specificMethodNameInFinal = methodInvocationInFinal
+					.resolveMethodBinding().getName().toString();
+			exceptionType = getExceptionTypeWhichWillThrow(methodInvocationInFinal);// 拿finally指定method的exception type
+			MethodInvocationCollectorVisitor visitor = new MethodInvocationCollectorVisitor();
+			tryStatementWillBeInject.getBody().accept(visitor);
+			MethodInvocation firstMethodWillThrowExceptionInTry = visitor
+					.getFirstInvocations().get(0);
 
-			} else {
-				methodInFinal = methodInvocationInFinal.toString().substring(0,
-						methodInvocationInFinal.toString().lastIndexOf("("));
-			}
-			exceptionType = getExceptionTypeWhichWillThrow(methodInvocationInFinal);
+			setFirstMethodWillThrowExInTry(firstMethodWillThrowExceptionInTry);
 			break;
 		case CarelessCleanup:
 			importObjects.add("java.io.IOException");
 			MethodInvocationCollectorVisitor allMethodInvVisitor = new MethodInvocationCollectorVisitor();
 			methodDeclarationWhichHasBadSmell.accept(allMethodInvVisitor);
 			tryStatements = getAllTryStatementOfMethodDeclaration(methodDeclarationWhichHasBadSmell);
-
+			boolean noTrystmt=false;
+			if(tryStatements.size() == 0){
+				noTrystmt = true;
+			}
+			if(noTrystmt)
+				trystatementIndexInMethodDeclaration++;
+			else
+				getTargetTryStetment(tryStatements, badSmellLineNumber);
 			List<MethodInvocation> methodInvocations = allMethodInvVisitor
 					.getMethodInvocations();
 			MethodInvocation closeMethod = getCloseMethodInvocation(
@@ -236,49 +208,97 @@ public class BadSmellTypeConfig {
 		}
 	}
 
+	private void collectMethodInvocationOutOfTry(
+			List<MethodInvocation> allMethod,
+			List<MethodInvocation> methodInTryStatement) {
+		for (MethodInvocation objectMethod : allMethod) {
+			boolean objectMethodOutOfTryStatement = true;
+			// 比對getStartPosition
+			if (methodInTryStatement != null) {// 先確定這個List不是null
+				for (MethodInvocation tmp : methodInTryStatement) {
+					if (tmp.getStartPosition() == objectMethod
+							.getStartPosition()) {
+						objectMethodOutOfTryStatement = false;
+						break;
+					}
+				}
+			}
+			// allMethodInvocationInMain.add(要產生UT的method)
+			if (objectMethodOutOfTryStatement) {
+				String tempMethod = "";
+				int position;
+				String methodName = objectMethod.resolveMethodBinding().getName().toString();
+				allMethodInvocationInMain.add(methodName);
+
+			}
+		}
+	}
+	
+	private void setFirstMethodWillThrowExInTry(
+			MethodInvocation firstMethodWillThrowExceptionInTry) {
+		// set method's method name and exception type to map
+		// map:{"method name" : "exception type"}
+		map.put(getObjMethodName(firstMethodWillThrowExceptionInTry).toString(),
+				firstMethodWillThrowExceptionInTry.resolveMethodBinding()
+						.getExceptionTypes()[0].getName());
+		String importException = firstMethodWillThrowExceptionInTry.resolveMethodBinding().getExceptionTypes()[0].getBinaryName();
+		checkIsDuplicate(importException);
+	}
+	
+    //取得try裡面第一個會丟出例外的method裡的名字和其例外類型
+	public Map getFirstMethodWillThrowExInTry() {
+		return map;
+	}
+
 	public String buildUpAspectsFile(String packageChain,
 			String filePathAspectJFile) {
 		String tempAspectContent = "";
 		String Newimports = "";
-		String result = "";
+		String existFileWithNewImports = "";
+		String exception = "";
+		String space = " ";
+		String and = "&&";
+		String before = "";
+		String call = "";
+		String withIn = "";
+		String aspectForFinallyBlock = "";
+		String AJInsertPositionContent = "";
 		File file = new File(filePathAspectJFile);
-		System.out.println(badSmellType_enum);
 		switch (badSmellType_enum) {
 		case DummyHandler:
 		case EmptyCatchBlock:
-		case ExceptionThrownFromFinallyBlock:
-		case UnprotectedMainProgram:
-
 			for (String importObj : getImportObjects()) {
 				Newimports = Newimports + "import " + importObj.trim()
 						+ ";\r\n";
 			}
-
-			result = addNewImports(Newimports, filePathAspectJFile, file);
-			String exception = getExceptionType();
+			Newimports += "import ntut.csie.RobustaUtils.AspectJSwitch;\n";
+			existFileWithNewImports = addNewImports(Newimports, filePathAspectJFile, file);
+			exception = getExceptionType();
 			if (!tempAspectContent.contains(exception)) {
 
-				String AJInsertPositionContent = decideWhereToInsertAJ(
+				AJInsertPositionContent = decideWhereToInsertAJ(
 						badSmellType, exception);
 
 				String beforeContent = "\t"
 						+ "String name = thisJoinPoint.getSignature().getName();"
 						+ "\r\n"
 						+ "\t"
-						+ "if (thisJoinPoint.getKind().equals(\"constructor-call\"))"
-						+ "\r\n"
-						+ "\t\t"
-						+ "name = thisJoinPoint.getSignature().getDeclaringTypeName().substring(thisJoinPoint.getSignature().getDeclaringTypeName().lastIndexOf(\".\") + 1);"
+						+ "String operation = AspectJSwitch.getInstance().getOperation(name);"
 						+ "\r\n"
 						+ "\t"
-						+ "String resp = AspectJSwitch.getInstance().nextAction(name);"
-						+ "\r\n" + "\t" + "if (resp.equals(\"f(" + exception
-						+ ")\"))" + "\r\n" + "\t\t" + "throw new " + exception
-						+ "();" + "\r\n\r\n" + "\t" + "}";
+						+ "if (operation.equals(\"f("
+						+ exception
+						+ ")\"))"
+						+ "\r\n"
+						+ "\t\t"
+						+ "throw new "
+						+ exception
+						+ "(\"This exception is thrown from " + badSmellType_enum + "'s unit test by using AspectJ.\");"
+						+ "\r\n\r\n" + "\t" + "}";
 				String newAspectContent = AJInsertPositionContent + "\r\n\r\n"
 						+ beforeContent;
 				if (file.exists()
-						&& result.replaceAll("\\s", "").indexOf(
+						&& existFileWithNewImports.replaceAll("\\s", "").indexOf(
 								newAspectContent.replaceAll("\\s", "")) < 0) {
 					tempAspectContent += newAspectContent + "\r\n" + "\t";
 				} else if (!file.exists()) {
@@ -287,78 +307,176 @@ public class BadSmellTypeConfig {
 			}
 
 			break;
-		case CarelessCleanup:
-			String space = " ";
-			String and = "&&";
-			String aspectJClassTitle = "\r\n" + "public aspect "
-					+ getClassName() + "AspectException {";
-			tempAspectContent = "";
-			Newimports = "";
-			result = "";
+		case UnprotectedMainProgram:
 			for (String importObj : getImportObjects()) {
 				Newimports = Newimports + "import " + importObj.trim()
 						+ ";\r\n";
 			}
+			Newimports += "import ntut.csie.RobustaUtils.AspectJSwitch;\n";
+			existFileWithNewImports = addNewImports(Newimports, filePathAspectJFile, file);
+			exception = getExceptionType();
+			if (!tempAspectContent.contains(exception)) {
 
+				AJInsertPositionContent = decideWhereToInsertAJ(
+						badSmellType, exception);
+
+				String beforeContent = "\t"
+						+ "String name = thisJoinPoint.getSignature().getName();"
+						+ "\r\n"
+						+ "\t"
+						+ "String operation = AspectJSwitch.getInstance().getOperation(name);"
+						+ "\r\n"
+						+ "\t"
+						+ "if (operation.equals(\"f("
+						+ exception
+						+ ")\"))"
+						+ "\r\n"
+						+ "\t\t"
+						+ "throw new "
+						+ exception
+						+ "(\"Main Program is not surround with try/catch.\");"
+						+ "\r\n" + "\t" + "}";
+				String newAspectContent = AJInsertPositionContent + "\r\n"
+						+ beforeContent;
+				if (file.exists()
+						&& existFileWithNewImports.replaceAll("\\s", "").indexOf(
+								newAspectContent.replaceAll("\\s", "")) < 0) {
+					tempAspectContent += newAspectContent + "\r\n" + "\t";
+				} else if (!file.exists()) {
+					tempAspectContent += newAspectContent + "\r\n" + "\t";
+				}
+			}
+
+			break;
+		case ExceptionThrownFromFinallyBlock:
+			//import
+			for (String importObj : getImportObjects()) {
+				Newimports = Newimports + "import " + importObj.trim()
+						+ ";\r\n";
+			}
+			Newimports += "import ntut.csie.RobustaUtils.CustomRobustaException;\n"
+						  +"import ntut.csie.RobustaUtils.AspectJSwitch;\n";
+			
+			//從現有的aj file 加入新的import及原本aj file的內容
+			existFileWithNewImports = addNewImports(Newimports, filePathAspectJFile, file);
+			//從source code 的 finally block提取aj需要的資訊並建立對應 aj file
+			exception = getExceptionType();
+			before = "\r\n\tbefore() throws " + getExceptionType() + " : (";
+			call = "call" + "(* *." + getMethodInFinal() + "(..) throws "
+					+ getExceptionType() + "))";
+			withIn = "within" + "(" + getClassName() + "){";
+
+			String finallyExceptionComponent = "\t"
+					+ "String name = thisJoinPoint.getSignature().getName();"
+					+ "\r\n"
+					+ "\t"
+					+ "String operation = AspectJSwitch.getInstance().getOperation(name);"
+					+ "\r\n"
+					+ "\t"
+					+ "if (operation.equals(\"f("
+					+ exception
+					+ ")\"))"
+					+ "\r\n"
+					+ "\t\t"
+					+ "throw new " 
+					+ exception
+					+ "(\"This Exception is thrown from finally block, so it is a Exception Thrown From Finally Block bad smell.\");"
+					+ "\r\n" + "\t" + "}";
+
+			aspectForFinallyBlock =  before + call + space + and + space +withIn
+					+ "\r\n" + finallyExceptionComponent + "\r\n\t\r\n\t";
+			if(!existFileWithNewImports.replaceAll("\\s", "").contains(aspectForFinallyBlock.replaceAll("\\s", "")))
+				tempAspectContent += aspectForFinallyBlock;
+			
+			//從source code 的 try block提取aj需要的資訊並建立對應 aj file 
+			Object exceptionMapKey = getFirstMethodWillThrowExInTry().keySet().toArray()[0];
+			String firstMethodExceptionTypeInTry = getFirstMethodWillThrowExInTry().get(exceptionMapKey)
+					.toString();
+			
+			String methodDeclarationName = methodDeclarationWhichHasBadSmell.resolveBinding().getName();
+			before = "before()" + ": (";
+			call = "call" + "(* *(..) throws "
+					+ firstMethodExceptionTypeInTry + "))";
+			withIn = "withincode" + "(* " + getClassName() + "." + methodDeclarationName + "(..)){";
+			String firstMethodInTryExceptionComponent = "\t"
+				+ "String name = thisJoinPoint.getSignature().getName();"
+				+ "\r\n"
+				+ "\t"
+				+ "String operation = AspectJSwitch.getInstance().getOperation(name);"
+				+ "\r\n"
+				+ "\t"
+				+ "if (operation.equals(\"f(CustomRobustaException)\"))"
+				+ "\r\n"
+				+ "\t\t"
+				+ "throw new CustomRobustaException(\"This Exception is thrown from try/catch block, so the bad smell is removed.\");"
+				+ "\r\n" + "\t" + "}";
+			String aspectForFirstMethodInTry = before + call + space + and + space +withIn + "\r\n"
+			+ firstMethodInTryExceptionComponent;
+			
+			if(!existFileWithNewImports.replaceAll("\\s", "").contains(aspectForFirstMethodInTry.replaceAll("\\s", "")))
+				tempAspectContent += aspectForFirstMethodInTry;
+			break;
+		case CarelessCleanup:
+			String aspectJClassTitle = "\r\n" + "public aspect "
+					+ getClassName() + "AspectException {";
+			tempAspectContent = "";
+			Newimports = "";
+			existFileWithNewImports = "";
+			for (String importObj : getImportObjects()) {
+				Newimports = Newimports + "import " + importObj.trim()
+						+ ";\r\n";
+			}
+			Newimports += "import ntut.csie.RobustaUtils.AspectJSwitch;\n";
 			file = new File(filePathAspectJFile);
-			result = addNewImports(Newimports, filePathAspectJFile, file);
+			existFileWithNewImports = addNewImports(Newimports, filePathAspectJFile, file);
 
-			String before = "before()" + ": (";
-			String call = "call" + "(* *.close(..) throws IOException" + "))";
-			String withIn = "within" + "(" + getClassName() + "){";
-
+			methodDeclarationName = methodDeclarationWhichHasBadSmell.resolveBinding().getName();
+			before = "after()" + ": (";
+			call = "call" + "(* *.close(..) throws IOException" + "))";
+			withIn = "withincode" + "(* "+ getClassName() + ".*(..)){";
 			String beforeContent = "\t"
 					+ "String name = thisJoinPoint.getSignature().getName();"
 					+ "\r\n"
 					+ "\t"
-					+ "if (thisJoinPoint.getKind().equals(\"constructor-call\"))"
-					+ "\r\n"
-					+ "\t\t"
-					+ "name = thisJoinPoint.getSignature().getDeclaringTypeName().substring(thisJoinPoint.getSignature().getDeclaringTypeName().lastIndexOf(\".\") + 1);"
+					+ "String operation = AspectJSwitch.getInstance().getOperation(name);"
 					+ "\r\n"
 					+ "\t"
-					+ "String resp = AspectJSwitch.getInstance().nextAction(name);"
-					+ "\r\n" + "\t"
-					+ "if (resp.equals(\"f(RuntimeException)\"))" + "\r\n"
+					+ "if (operation.equals(\"AOPCheckResources\"))"
+					+ "\r\n"
 					+ "\t\t"
-					+ "throw new RuntimeException(\"erase bad smell\");"
-					+ "\r\n\r\n" + "\t" + "}";
-			String aspectCloseContent = before + call + space + and + space
-					+ withIn + "\r\n\r\n" + beforeContent + "\r\n\t";
+					+ "AspectJSwitch.getInstance().checkResource();"
+					+ "\r\n" + "\t" + "}";
+			aspectForFinallyBlock = "\r\n\t"+before + call + space + and + space + withIn
+					+ "\r\n" + beforeContent + "\r\n\t";
 
+			
 			for (String CarelessException : getCollectBadSmellExceptionTypes()) {
 				if (!tempAspectContent.contains("f(" + CarelessException + ")")) {
-
-					String AJInsertPositionContent = decideWhereToInsertAJ(
+					AJInsertPositionContent = decideWhereToInsertAJ(
 							badSmellType, CarelessException);
 					beforeContent = "\t"
 							+ "String name = thisJoinPoint.getSignature().getName();"
 							+ "\r\n"
 							+ "\t"
-							+ "if (thisJoinPoint.getKind().equals(\"constructor-call\"))"
-							+ "\r\n"
-							+ "\t\t"
-							+ "name = thisJoinPoint.getSignature().getDeclaringTypeName().substring(thisJoinPoint.getSignature().getDeclaringTypeName().lastIndexOf(\".\") + 1);"
-							+ "\r\n"
-							+ "\t"
-							+ "String resp = AspectJSwitch.getInstance().nextAction(name);"
-							+ "\r\n" + "\t" + "if (resp.equals(\"f("
+							+ "String operation = AspectJSwitch.getInstance().getOperation(name);"
+							+ "\r\n" + "\t" + "if (operation.equals(\"f("
 							+ CarelessException + ")\"))" + "\r\n" + "\t\t"
-							+ "throw new " + CarelessException + "();"
-							+ "\r\n\r\n" + "\t" + "}";
+							+ "throw new " + CarelessException
+							+ "(\"This Exception is thrown from Robusta.\");"
+							+ "\r\n" + "\t" + "}";
 					String newAspectContent = AJInsertPositionContent
-							+ "\r\n\r\n" + beforeContent;
+							+ "\r\n" + beforeContent;
 					if (file.exists()
-							&& result.replaceAll("\\s", "").indexOf(
+							&& existFileWithNewImports.replaceAll("\\s", "").indexOf(
 									newAspectContent.replaceAll("\\s", "")) < 0) {
 						tempAspectContent += newAspectContent + "\r\n" + "\t";
 					} else if (!file.exists()) {
 						if (tempAspectContent
-								.contains("RuntimeException(\"erase bad smell\")"))
+								.contains("RuntimeException(\"This exception is thrown from Robusta's AspectJ.\")"))
 							tempAspectContent += newAspectContent + "\r\n"
 									+ "\t";
 						else
-							tempAspectContent += aspectCloseContent
+							tempAspectContent += aspectForFinallyBlock
 									+ newAspectContent + "\r\n" + "\t";
 					}
 				}
@@ -366,29 +484,87 @@ public class BadSmellTypeConfig {
 			break;
 
 		}
-		return getCompleteAJContent(Newimports, tempAspectContent, result,
+		return getCompleteAJContent(Newimports, tempAspectContent, existFileWithNewImports,
 				file, packageChain);
 
 	}
 
 	private String getCompleteAJContent(String Newimports,
-			String tempAspectContent, String result, File file,
+			String tempAspectContent, String existFileWithNewImports, File file,
 			String packageChain) {
 		String beforeEnd = "\r\n" + "}";
 		String aspectJClassTitle = "\r\n" + "public aspect " + getClassName()
 				+ "AspectException {";
+		String ignoreMethodLogic = "\r\n\t"+ "Object around():(call(* *(..))||call(*.new(..))) && withincode (* "+ getClassName()+".*(..)){"+"\r\n"
+						+ "\t\tString method = thisJoinPoint.toString();\r\n"
+						+ "\t\tif(method.contains(\"Exception(Throwable)\")){\n"
+						+ "\t\t\treturn proceed();\r\n"
+						+ "\t\t}else{\n"
+						+"\t\t\treturn null;\n\t\t}\r\n\t}";
 		String aspectJFileConetent = "package " + packageChain + ";"
 				+ "\r\n\r\n" + Newimports + aspectJClassTitle + "\r\n" + "\t"
-				+ tempAspectContent + beforeEnd;
-
-		if (!file.exists()) {
-			return aspectJFileConetent;
-		} else {
-			String aspectJFileConetentAppendNewException = "";
-			aspectJFileConetentAppendNewException = result + "\r\n" + "\t"
-					+ tempAspectContent + beforeEnd;
-			return aspectJFileConetentAppendNewException;
+				+tempAspectContent+"\r\n";
+		if(badSmellType.equals("ExceptionThrownFromFinallyBlock")) {
+			if (!file.exists()) {
+				ignoreMethodLogic = "\r\n\t"+ "Object around():(call(* *(..))||call(*.new(..))) && withincode (* "+ getClassName()+".*(..)){"+"\r\n"
+									+"\t\ttry{\n"
+									+"\t\t\treturn proceed();\r\n"
+									+"\t\t}catch(Exception e){\n"
+									+"\t\t\treturn null;\n\t\t}\r\n\t}";
+				return aspectJFileConetent+ "\t"+ ignoreMethodLogic + beforeEnd;
+			} else {
+				String completeAJContent = "";
+				String existContentSplitByObjectAround[] = existFileWithNewImports.split("Object around");
+				
+				String AJContentWithoutIgnoreMethodLogic = existContentSplitByObjectAround[0];
+				ignoreMethodLogic = existContentSplitByObjectAround[1];
+				completeAJContent = AJContentWithoutIgnoreMethodLogic.concat(tempAspectContent)+"\r\n\t"
+																	.concat("Object around"+ignoreMethodLogic)+"\r\n\t"
+																	.concat(beforeEnd);
+				return completeAJContent;
+			}
+		} else if(badSmellType.equals("DummyHandler")||badSmellType.equals("EmptyCatchBlock")) {
+			if (!file.exists()) {
+				return aspectJFileConetent+ "\t"+ ignoreMethodLogic + beforeEnd;
+			} else {
+				String completeAJContent = "";
+                String existContentSplitByObjectAround[] = existFileWithNewImports.split("Object around");
+                String AJContentWithoutIgnoreMethodLogic = existContentSplitByObjectAround[0];
+                ignoreMethodLogic = existContentSplitByObjectAround[1];
+                completeAJContent = AJContentWithoutIgnoreMethodLogic.concat(tempAspectContent)
+                													 .concat("Object around"+ignoreMethodLogic)+"\r\n\t"
+                													 .concat(beforeEnd);
+				return completeAJContent;
+			}
 		}
+		else if (badSmellType.equals("UnprotectedMainProgram")){
+			 	if(!file.exists())
+			 		return aspectJFileConetent+beforeEnd;
+			 	else
+			 		return existFileWithNewImports+beforeEnd;
+		}
+		else if(badSmellType.equals("CarelessCleanup")){
+			if(!file.exists()){
+				ignoreMethodLogic = "\r\n\t"+ "Object around():(call(* *(..))||call(*.new(..))) && withincode (* "+ getClassName()+".*(..)){"+"\r\n"
+				+"\t\ttry{\n"
+				+"\t\t\treturn proceed();\r\n"
+				+"\t\t}catch(Exception e){\n"
+				+"\t\t\treturn null;\n\t\t}\r\n\t}";
+				return aspectJFileConetent+"\t"+ignoreMethodLogic+beforeEnd;
+			}else{
+				String completeAJContent = "";
+				String existContentSplitByObjectAround[] = existFileWithNewImports.split("Object around");
+				
+				String AJContentWithoutIgnoreMethodLogic = existContentSplitByObjectAround[0];
+				ignoreMethodLogic = existContentSplitByObjectAround[1];
+				completeAJContent = AJContentWithoutIgnoreMethodLogic.concat(tempAspectContent)
+																	.concat("Object around"+ignoreMethodLogic)+"\r\n\t"
+																	.concat(beforeEnd);
+				return completeAJContent;
+			}
+		}
+		else
+			return aspectJFileConetent;
 
 	}
 
@@ -401,7 +577,7 @@ public class BadSmellTypeConfig {
 				BufferedReader br = new BufferedReader(fr);
 				String temp;
 				while ((temp = br.readLine()) != null) {
-					if (temp.indexOf("public") > -1)
+					if (temp.indexOf("public aspect ") > -1)
 						result = result + Newimports + "\r\n";
 					else if (Newimports.indexOf(temp) > -1)
 						continue;
@@ -425,15 +601,23 @@ public class BadSmellTypeConfig {
 
 		if (badSmellType.equals("UnprotectedMainProgram")) {
 			before = "before()  : (";
-			call = "call" + "(* *(..) ) || call(*.new(..) ))";
-			withIn = "within" + "(" + getClassName()
-					+ ") && withincode(* main(..) ){";
+			call = "call" + "(* *(..) ) )";
+			withIn = "withincode(* " + getClassName() + ".main(..) ){";
+		} else if (badSmellType.equals("CarelessCleanup")) {
+			String methodDeclarationName = methodDeclarationWhichHasBadSmell.resolveBinding().getName();
+			before = "\r\n\tbefore() throws " + exception + ": (";
+			call = "call" + "(* *." +getCollectBadSmellMethods().get(trystatementIndexInMethodDeclaration)+
+					"(..) throws " + exception
+					+ ") )";
+			withIn = "withincode" + "(* " + getClassName() + "."+methodDeclarationName+"(..)){";
 		} else {
-			before = "before() throws " + exception + ": (";
+			String methodDeclarationName = methodDeclarationWhichHasBadSmell.resolveBinding().getName();
+			before = "\r\n\tbefore() throws " + exception + ": (";
 			call = "call" + "(* *(..) throws " + exception
-					+ ") || call(*.new(..) throws " + exception + "))";
-			withIn = "within" + "(" + getClassName() + "){";
+					+ ") )";
+			withIn = "withincode" + "(* " + getClassName() + "."+methodDeclarationName+"(..)){";
 		}
+		
 		return before + call + space + and + space + withIn;
 
 	}
@@ -450,19 +634,7 @@ public class BadSmellTypeConfig {
 	}
 
 	private String getObjMethodName(MethodInvocation method) {
-		String objMethod = "";
-
-		boolean objMethodHasDot = method.toString().contains(".") ? true
-				: false;
-
-		if (objMethodHasDot) {
-			objMethod = method.toString().substring(
-					method.toString().lastIndexOf('.') + 1,
-					method.toString().lastIndexOf('('));
-
-		} else
-			objMethod = method.toString().substring(0,
-					method.toString().lastIndexOf("("));
+		String objMethod = method.resolveMethodBinding().getName().toString();
 		return objMethod;
 	}
 
@@ -478,26 +650,105 @@ public class BadSmellTypeConfig {
 		return candidate;
 	}
 
-	// 回傳一個list包含catch、finally裡的所有method
-	private List<MethodInvocation> addMethodInCatchAndFinal(
+	// 回傳一個list包含try、catch、finally裡的所有method
+	private List<MethodInvocation> addMethodInTryStatement(
 			List<TryStatement> tryStatements) {
-		FindAllMethodInvocationVisitor getAllMethodInvocation = new FindAllMethodInvocationVisitor();
+		MethodInvocationCollectorVisitor getAllMethodInvocation = new MethodInvocationCollectorVisitor();
+
 		for (TryStatement ts : tryStatements) {
-			// 抓catch
-			for (int i = 0; i < ts.catchClauses().size(); i++) {
-				((CatchClause) ts.catchClauses().get(i))
-						.accept(getAllMethodInvocation);
-			}
-			// 抓finally
-			if (ts.getFinally() != null) {
-				ts.getFinally().accept(getAllMethodInvocation);
-			}
+			ts.accept(getAllMethodInvocation);
 		}
 		return getAllMethodInvocation.getMethodInvocations();
 	}
 
+	public String getAssertion(MethodDeclaration methodDeclaration) {
+		String assertion = "";
+		int modifierNum = methodDeclaration.getModifiers();
+		switch (badSmellType_enum) {
+		case DummyHandler:
+		case EmptyCatchBlock:
+			if (Modifier.isPrivate(modifierNum)) {
+				assertion = "String exceptionMessage = e.getCause().getMessage().toString();\n\t\t\t"
+						+ "Assert.assertTrue(exceptionMessage.contains(\"This exception is thrown from " + badSmellType_enum + "'s unit test by using AspectJ.\"));";
+			} else {
+				assertion = "String exceptionMessage = e.getMessage().toString();\n\t\t\t"
+						+ "Assert.assertTrue(exceptionMessage.contains(\"This exception is thrown from " + badSmellType_enum + "'s unit test by using AspectJ.\"));";
+			}
+			break;
+		case ExceptionThrownFromFinallyBlock:
+			if (Modifier.isPrivate(modifierNum)) {
+				assertion = "catch(Exception e){\n\t\t\t"
+						+ "e.printStackTrace();\n\t\t\t"
+						+ "String exceptionMessage = e.getCause().getMessage().toString();\n\t\t\t"
+						+ "Assert.assertEquals(\"This Exception is thrown from try/catch block, so the bad smell is removed.\",exceptionMessage);\n\t\t"
+						+ "}";
+			} else {
+				assertion = "catch (CustomRobustaException e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.assertEquals(\"This Exception is thrown from try/catch block, so the bad smell is removed.\",e.getMessage());"
+						+ "\n\t\t} catch (Exception e) {\n\t\t\te.printStackTrace();\n\t\t\tAssert.fail(\"Exception is thrown from finally block.\");"+"\n\t\t}";
+			}
+			break;
+		}
+		return assertion;
+	}
+
+	public String getMethodCaller(MethodDeclaration methodDeclaration) {
+		String methodCallerWay = null;
+		String methodName = methodDeclaration.getName().toString();
+		int modifierNum = methodDeclaration.getModifiers();
+		if (Modifier.isStatic(modifierNum)) {
+
+			methodCallerWay = getClassName() + "." + methodName + "("+ getMDParameters(methodDeclaration) +");";
+		} else if (Modifier.isPrivate(modifierNum)) {
+			methodCallerWay = getClassName() + " object = new "
+					+ getClassName() + "();\n\t\t\t"
+					+ "Method privateMethod = " + getClassName()
+					+ ".class.getDeclaredMethod(\"" + methodName
+					+ "\");\n\t\t\t"
+					+ "privateMethod.setAccessible(true);\n\t\t\t"
+					+ "privateMethod.invoke(object);";
+
+		} else {
+			methodCallerWay = getClassName() + " object = new "
+					+ getClassName() + "();\n\t\t\t" + "object." + methodName
+					+ "(" + getMDParameters(methodDeclaration) + ");";
+		}
+		return methodCallerWay;
+	}
+
+	private String getMDParameters(MethodDeclaration methodDeclaration) {
+		ITypeBinding[] a = methodDeclaration.resolveBinding().getParameterTypes();
+		String[] MDParametersCollection = new String[a.length];
+		
+		int index=0;
+		for(ITypeBinding  parameter: a) {
+			if(parameter.isPrimitive()) {
+				if(parameter.getQualifiedName().equals("byte"))
+					MDParametersCollection[index] ="(byte)0";
+				else if(parameter.getQualifiedName().equals("short"))
+					MDParametersCollection[index] ="(short)0";
+				else if(parameter.getQualifiedName().equals("int"))
+					MDParametersCollection[index] ="0";
+				else if(parameter.getQualifiedName().equals("long"))
+					MDParametersCollection[index] ="0L";
+				else if(parameter.getQualifiedName().equals("float"))
+					MDParametersCollection[index] ="0.0f";
+				else if(parameter.getQualifiedName().equals("double"))
+					MDParametersCollection[index] ="0.0d";
+				else if(parameter.getQualifiedName().equals("char"))
+					MDParametersCollection[index] ="\'0\'";
+				else if(parameter.getQualifiedName().equals("boolean"))
+					MDParametersCollection[index] ="false";
+			} else {
+				MDParametersCollection[index] = "null";
+			}
+			index++;
+		}
+		String MDParameters = Arrays.toString(MDParametersCollection).replaceAll("\\[", "").replaceAll("\\]", "");
+		return MDParameters;
+	}
+
 	public String getMethodInFinal() {
-		return methodInFinal;
+		return specificMethodNameInFinal;
 	}
 
 	private String getExceptionTypeWhichWillThrow(MethodInvocation method) {
@@ -510,9 +761,9 @@ public class BadSmellTypeConfig {
 		return exceptionTypes;
 	}
 
-	private MethodInvocation getMethodInvocationInFinally(
+	private MethodInvocation getBadSmellInvocationFromFinally(
 			int badSmellLineNumber, Block finallyBlock) {
-		FindAllMethodInvocationVisitor getAllMethodInvocation = new FindAllMethodInvocationVisitor();
+		MethodInvocationCollectorVisitor getAllMethodInvocation = new MethodInvocationCollectorVisitor();
 		finallyBlock.accept(getAllMethodInvocation);
 		List<MethodInvocation> methodThrowExceptionList = getAllMethodInvocation
 				.getMethodInvocations();
@@ -521,14 +772,15 @@ public class BadSmellTypeConfig {
 			if (getStatementLineNumber(m) == badSmellLineNumber)
 				return m;
 		return null;
+		
 	}
 
 	public List<String> getAllMethodInvocationInMain() {
 		return allMethodInvocationInMain;
 	}
 
-	private List<MethodInvocation> getMethodInvocationWhichWillThrowExceptionAsInput() {
-		FindAllMethodInvocationVisitor getAllMethodInvocation = new FindAllMethodInvocationVisitor();
+	private List<MethodInvocation> getAllMethodInvocation() {
+		MethodInvocationCollectorVisitor getAllMethodInvocation = new MethodInvocationCollectorVisitor();
 		methodDeclarationWhichHasBadSmell.accept(getAllMethodInvocation);
 		List<MethodInvocation> methodThrowExceptionList = getAllMethodInvocation
 				.getMethodInvocations();
@@ -543,7 +795,7 @@ public class BadSmellTypeConfig {
 		return collectBadSmellExceptionTypes;
 	}
 
-	public List<String> getAllMethodThrowInSpecificExceptionList() {
+	public List<String> getFirstInvocationSameAsCatch() {
 		return methodThrowInSpecificExceptionList;
 	}
 
@@ -628,6 +880,7 @@ public class BadSmellTypeConfig {
 			int lineNumberOfTryStatement = getStatementLineNumber(tryStatement);
 			if (lineNumberOfTryStatement < badSmellLineNumber) {
 				candidate = tryStatement;
+				trystatementIndexInMethodDeclaration++;
 			} else {
 				break;
 			}
@@ -679,7 +932,7 @@ public class BadSmellTypeConfig {
 	private List<MethodInvocation> getMethodInvocationWhichWillThrowTheSameExceptionAsInput(
 			String exceptionType, TryStatement tryStatementWillBeInject) {
 		Block body = tryStatementWillBeInject.getBody();
-		FindAllMethodInvocationVisitor getAllMethodInvocation = new FindAllMethodInvocationVisitor();
+		MethodInvocationCollectorVisitor getAllMethodInvocation = new MethodInvocationCollectorVisitor();
 		body.accept(getAllMethodInvocation);
 		List<MethodInvocation> methodInv = getAllMethodInvocation
 				.getMethodInvocations();

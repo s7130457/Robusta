@@ -150,13 +150,13 @@ public class TestGenerateAspectJFileForCarelessCleanup {
 		String createPackagePath = workSpacePath + "/" + addpackagePath;
 		String filePathAspectJFile = createPackagePath + "/testAspectJFile.aj";
 		String Actual = config.buildUpAspectsFile(packageChain,
-				filePathAspectJFile);
+				filePathAspectJFile).replaceAll("\\s", "");
 		String currentDirPath = System.getProperty("user.dir");
 		String packages = currentDirPath + File.separator
 				+ "test/ntut/csie/aspect/CarelessCleanup/AJFileExcepted";
 		File file = new File(packages);
 		String aspectContentExpected = "";
-		aspectContentExpected = readFile(file);
+		aspectContentExpected = readFile(file).replaceAll("\\s", "");
 		Assert.assertEquals(aspectContentExpected, Actual);
 	}
 	
@@ -173,13 +173,13 @@ public class TestGenerateAspectJFileForCarelessCleanup {
 		String createPackagePath = workSpacePath + "/" + addpackagePath;
 		String filePathAspectJFile = createPackagePath + "/testAspectJFile.aj";
 		String Actual = config.buildUpAspectsFile(packageChain,
-				filePathAspectJFile);
+				filePathAspectJFile).replaceAll("\\s", "");
 		String currentDirPath = System.getProperty("user.dir");
 		String packages = currentDirPath + File.separator
 				+ "test/ntut/csie/aspect/CarelessCleanup/AJFileExcepted";
 		File file = new File(packages);
 		String aspectContentExpected = "";
-		aspectContentExpected = readFile(file);
+		aspectContentExpected = readFile(file).replaceAll("\\s", "");
 		Assert.assertEquals(aspectContentExpected, Actual);
 	}
 

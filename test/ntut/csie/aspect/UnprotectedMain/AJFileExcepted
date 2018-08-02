@@ -1,16 +1,16 @@
 package ntut.csie.TestAspectPackage;
 
 import ntut.csie.failFastUT.UnprotectedMain.NoEHBlockInMainExample;
+import ntut.csie.RobustaUtils.AspectJSwitch;
 
 public aspect NoEHBlockInMainExampleAspectException {
-	before()  : (call(* *(..) ) || call(*.new(..) )) && within(NoEHBlockInMainExample) && withincode(* main(..) ){
+
+	before()  : (call(* *(..) ) ) && withincode(* NoEHBlockInMainExample.main(..) ){
 
 	String name = thisJoinPoint.getSignature().getName();
-	if (thisJoinPoint.getKind().equals("constructor-call"))
-		name = thisJoinPoint.getSignature().getDeclaringTypeName().substring(thisJoinPoint.getSignature().getDeclaringTypeName().lastIndexOf(".") + 1);
-	String resp = AspectJSwitch.getInstance().nextAction(name);
-	if (resp.equals("f(RuntimeException)"))
-		throw new RuntimeException();
+	String operation = AspectJSwitch.getInstance().getOperation(name);
+	if (operation.equals("f(RuntimeException)"))
+		throw new RuntimeException("Main Program is not surround with try/catch.");
 
 	}
 	

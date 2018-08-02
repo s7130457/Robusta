@@ -25,6 +25,7 @@ import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.ThrowStatement;
 import org.eclipse.jdt.core.dom.TryStatement;
+import org.eclipse.jdt.core.dom.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -137,9 +138,9 @@ public class ExceptionAnalyzer extends RLBaseVisitor {
 	 */
 	private void getMethodThrowsList(ASTNode node) {
 		MethodDeclaration method = (MethodDeclaration) node;
-		List<Name> throwsList = method.thrownExceptions();
+		List<Type> throwsList = method.thrownExceptionTypes();
 
-		for (Name name : throwsList) {
+		for (Type name : throwsList) {
 			
 			String code = node.toString();
 			int pos1 = code.indexOf("throws");
@@ -148,7 +149,7 @@ public class ExceptionAnalyzer extends RLBaseVisitor {
 				if(pos2 == -1)
 					pos2 = code.indexOf(";", pos1 + 1);
 				code = code.substring(pos1, pos2);
-				RLMessage rlmsg = new RLMessage(0, name.resolveTypeBinding(), code, name.getStartPosition(), getLineNumber(name.getStartPosition()));
+				RLMessage rlmsg = new RLMessage(0, name.resolveBinding(), code, name.getStartPosition(), getLineNumber(name.getStartPosition()));
 				rlmsg.setKey("");
 				rlmsg.setKeyList(null);
 				exceptionList.add(rlmsg);

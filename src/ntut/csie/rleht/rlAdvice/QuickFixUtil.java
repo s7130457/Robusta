@@ -264,9 +264,9 @@ public class QuickFixUtil {
 	private void addThrownException(AST ast, String exception, ASTNode currentMethodNode) {
 		MethodDeclaration md = (MethodDeclaration)currentMethodNode;
 		boolean isExist = false;
-		for(int i=0;i<md.thrownExceptions().size();i++) {
-			if(md.thrownExceptions().get(i) instanceof SimpleName) {
-				SimpleName sn = (SimpleName)md.thrownExceptions().get(i);
+		for(int i=0;i<md.thrownExceptionTypes().size();i++) {
+			if(md.thrownExceptionTypes().get(i) instanceof SimpleName) {
+				SimpleName sn = (SimpleName)md.thrownExceptionTypes().get(i);
 				if(sn.getIdentifier().equals(exception)) {
 					isExist = true;
 					break;
@@ -274,7 +274,7 @@ public class QuickFixUtil {
 			}
 		}
 		if (!isExist) {
-			md.thrownExceptions().add(ast.newSimpleName(exception));
+			md.thrownExceptionTypes().add(ast.newSimpleName(exception));
 		}
 	}
 }

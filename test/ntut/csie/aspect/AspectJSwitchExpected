@@ -6,42 +6,55 @@ import java.util.List;
 
 
 public class AspectJSwitch {
-	private static AspectJSwitch instance;
-	private List<String> opres = new ArrayList<String>();
+	private static AspectJSwitch mAspectJSwitch;
+	private List<String> actionList = new ArrayList<String>();
 	public Iterator<String> iterator = null;
+	private  boolean isCleanup = false;
 	
 
 	private AspectJSwitch() {
 	}	
 
 	public static AspectJSwitch getInstance() {
-		if (instance == null)
-			instance = new AspectJSwitch();
-		return instance;
+		if (mAspectJSwitch == null)
+			mAspectJSwitch = new AspectJSwitch();
+		return mAspectJSwitch;
 	}	
 
 	public void initResponse() {
-		opres.clear();
+		actionList.clear();
 	}	
 
-	public void addResponse(String opRes) {
-		opres.add(opRes);
+	public void addResponse(String action) {
+		actionList.add(action);
 	}	
 
-	public void toBeforeFirstResponse() {
-		iterator = opres.iterator();
+	public void toFirstResponse() {
+		iterator = actionList.iterator();
 	}	
 
-	public synchronized String nextAction(String op) {
-		String ret = "s";
-		for (String action : opres)
-			if (action.startsWith(op + "/")) {
-				String[] parts = action.split("/");
-				ret = parts[1];
-				opres.remove(action);
+	public synchronized String getOperation(String operation) {
+		String result = "success";
+		for (String action : actionList)
+			if (action.startsWith(operation + "/")) {
+				String exceptionType = action.split("/")[1];
+				result = exceptionType;
+				actionList.remove(action);
 				break;
 			}
-		return ret;
+		return result;
 	}	
+	
+	public void checkResource() {
+		if (isCleanup == false)
+			isCleanup = true;
+	}
+	
+	public boolean isResourceCleanup()  {
+		boolean tmp = isCleanup;
+		isCleanup = false;
+		return tmp;
+		
+	}
 
 }

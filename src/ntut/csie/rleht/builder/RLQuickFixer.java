@@ -15,6 +15,7 @@ import ntut.csie.rleht.common.RLUtils;
 import ntut.csie.rleht.rlAdvice.AchieveRL1QuickFix;
 import ntut.csie.rleht.views.RLData;
 import ntut.csie.robusta.agile.exception.RTag;
+import ntut.csie.robusta.codegen.markerresolution.MoveClosifyToFinallyQuickFix;
 import ntut.csie.robusta.codegen.markerresolution.TEFBExtractMethodMarkerResolution;
 import ntut.csie.robusta.codegen.markerresolution.MoveCodeIntoBigOuterTryQuickFix;
 import ntut.csie.robusta.codegen.markerresolution.RefineRuntimeExceptionQuickFix;
@@ -32,13 +33,13 @@ public class RLQuickFixer implements IMarkerResolutionGenerator {
 	private static Logger logger = LoggerFactory.getLogger(RLQuickFixer.class);
 	private ResourceBundle resource = ResourceBundle.getBundle("robusta", new Locale("en", "US"));
 	
-	private String ECBThrowRuntimeExceptionQuickFixDescription = "Quick Fix==>Throw RuntimeException";
-	private String ECBThrowUncheckedExceptionQuickFixDescription = "Quick Fix==>Throw Unchecked Exception";
-	private String ECBThrowUncheckedExceptionRefactoringDescription = "Refactor==>Throw Unchecked Excetpion";
+//	private String ECBThrowRuntimeExceptionQuickFixDescription = "Quick Fix==>Throw RuntimeException";
+	private String ECBThrowUncheckedExceptionQuickFixDescription = "Refactor==>Throw Unchecked Exception";
+	private String ECBThrowUncheckedExceptionRefactoringDescription = "Quick Fix==>Throw Excetpion";
 	
-	private String DHThrowRuntimeExceptionQuickFixDescription = "Quick Fix==>Throw RuntimeException";
-	private String DHBThrowUncheckedExceptionQuickFixDescription = "Quick Fix==>Throw Unchecked Exception";
-	private String DHBThrowUncheckedExceptionRefactoringDescription = "Refactor==>Throw Unchecked Excetpion";
+//	private String DHThrowRuntimeExceptionQuickFixDescription = "Quick Fix==>Throw RuntimeException";
+	private String DHBThrowUncheckedExceptionQuickFixDescription = "Refactor==>Throw Unchecked Exception";
+	private String DHBThrowUncheckedExceptionRefactoringDescription = "Quick Fix==>Throw Excetpion";
 	
 	// should be quick fix
 	private String NTExtractMethodRefactoringDescription = "Refactor==>Extract Method";
@@ -48,6 +49,9 @@ public class RLQuickFixer implements IMarkerResolutionGenerator {
 	
 	// should be quick fix
 	private String TEFFBExtractMethodRefactoringDescription = "Refactor==>Extract Method";
+	
+	//should be quick fix
+	private String CCMoveCloseToFinallyQuickFixDescription = "Quick Fix==>Move release resource function to finally block";
 	
 	public IMarkerResolution[] getResolutions(IMarker marker) {
 		try {
@@ -65,30 +69,32 @@ public class RLQuickFixer implements IMarkerResolutionGenerator {
 			 *  Add refactoring or quickfix for bad smells
 			 */
 			if(problem.equals(RLMarkerAttribute.CS_EMPTY_CATCH_BLOCK)) {
-				markerList.add(new RefineRuntimeExceptionQuickFix(ECBThrowRuntimeExceptionQuickFixDescription));
+//				markerList.add(new RefineRuntimeExceptionQuickFix(ECBThrowRuntimeExceptionQuickFixDescription));
 				markerList.add(new RethrowUncheckExAction(ECBThrowUncheckedExceptionQuickFixDescription));
 				markerList.add(new ThrowCheckedExceptionQuickFix(ECBThrowUncheckedExceptionRefactoringDescription));
-				markerList.add(new AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock("add Aspect"));
+				markerList.add(new AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock("Expose bad smell==>Empty Catch Block"));
 			} else if(problem.equals(RLMarkerAttribute.CS_DUMMY_HANDLER)) {
 				String methodIdx = (String) marker.getAttribute(RLMarkerAttribute.RL_METHOD_INDEX);
 				if(!methodIdx.equals("-1")) {
-					markerList.add(new RefineRuntimeExceptionQuickFix(DHThrowRuntimeExceptionQuickFixDescription));
+//					markerList.add(new RefineRuntimeExceptionQuickFix(DHThrowRuntimeExceptionQuickFixDescription));
 					markerList.add(new RethrowUncheckExAction(DHBThrowUncheckedExceptionQuickFixDescription));
 					markerList.add(new ThrowCheckedExceptionQuickFix(DHBThrowUncheckedExceptionRefactoringDescription));
-					markerList.add(new AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock("add Aspect"));
+					markerList.add(new AddAspectsMarkerResoluationForDummyHandlerAndEmptyCatchBlock("Expose bad smell==>Dummy Handler"));
 				}
 			} else if(problem.equals(RLMarkerAttribute.CS_NESTED_TRY_STATEMENT)) {
 				markerList.add(new NTMarkerResolution(NTExtractMethodRefactoringDescription));
 			} else if(problem.equals(RLMarkerAttribute.CS_UNPROTECTED_MAIN)) {
-				markerList.add(new AddAspectsMarkerResolutionForUnprotectedMain("add Aspect"));
+				markerList.add(new AddAspectsMarkerResolutionForUnprotectedMain("Expose bad smell==>Unprotected Main Program"));
 				markerList.add(new MoveCodeIntoBigOuterTryQuickFix(UMEncloseAllStatementInTryRefactoringDescription));
 			} else if(problem.equals(RLMarkerAttribute.CS_CARELESS_CLEANUP)){
 				// not going to provide resolution for now.
-				markerList.add(new AddAspectsMarkerResoluationForCarelessCleanup("add Aspect"));
+				markerList.add(new AddAspectsMarkerResoluationForCarelessCleanup("Expose bad smell==>Careless Cleanup"));
+				markerList.add(new MoveClosifyToFinallyQuickFix(CCMoveCloseToFinallyQuickFixDescription));
 			} else if(problem.equals(RLMarkerAttribute.CS_EXCEPTION_THROWN_FROM_FINALLY_BLOCK)) {
 				boolean isSupportRefactoring = (Boolean)marker.getAttribute(RLMarkerAttribute.RL_INFO_SUPPORT_REFACTORING);
 				if(isSupportRefactoring){
-					markerList.add(new AddAspectsMarkerResolutionForThrowFromFinally("add Aspect"));
+					
+					markerList.add(new AddAspectsMarkerResolutionForThrowFromFinally("Expose bad smell==>Exception Thrown From Finally Block"));
 					markerList.add(new TEFBExtractMethodMarkerResolution(TEFFBExtractMethodRefactoringDescription));
 				}
 					

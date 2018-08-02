@@ -43,11 +43,13 @@ import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
 import org.eclipse.jdt.core.dom.MemberValuePair;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.ThrowStatement;
+import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.refactoring.CompilationUnitChange;
 import org.eclipse.jface.text.BadLocationException;
@@ -172,7 +174,7 @@ public class RethrowExRefactoring extends Refactoring {
 				if (javaElement instanceof IOpenable)
 					actOpenable = (IOpenable) javaElement;
 				
-				ASTParser parser = ASTParser.newParser(AST.JLS3);
+				ASTParser parser = ASTParser.newParser(AST.JLS8);
 				parser.setKind(ASTParser.K_COMPILATION_UNIT);
 				
 				parser.setSource((ICompilationUnit) javaElement);
@@ -255,19 +257,19 @@ public class RethrowExRefactoring extends Refactoring {
 	 */
 	private void checkMethodThrow(AST ast) {
 		MethodDeclaration md = (MethodDeclaration)methodNodeWillBeRefactored;
-		List<SimpleName> thStat = md.thrownExceptions();
+		List<Type> thStat = md.thrownExceptionTypes();
 		boolean isExist = false;
 		for(int i=0;i<thStat.size();i++) {
-			if(thStat.get(i).getNodeType() ==  ASTNode.SIMPLE_NAME) {
-				SimpleName sn = (SimpleName)thStat.get(i);
-				if(sn.getIdentifier().equals(exceptionTypeWillBeRethrown)) {
+			if(thStat.get(i).getNodeType() ==  ASTNode.SIMPLE_TYPE) {
+				Type sn = thStat.get(i);
+				if(sn.resolveBinding().getName().equals(exceptionTypeWillBeRethrown)) {
 					isExist = true;
 					break;
 				}
 			}
 		}
 		if(!isExist)
-			thStat.add(ast.newSimpleName(this.exceptionTypeWillBeRethrown));
+			thStat.add(ast.newSimpleType((Name)ast.newSimpleName(this.exceptionTypeWillBeRethrown)));
 	}
 	
 	

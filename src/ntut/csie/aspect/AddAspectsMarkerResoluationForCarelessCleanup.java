@@ -54,7 +54,9 @@ import org.eclipse.ui.IMarkerResolution2;
 public class AddAspectsMarkerResoluationForCarelessCleanup implements
 		IMarkerResolution, IMarkerResolution2 {
 	private String label;
-	private String description = "Add a aspectJ file to expose influence of bad smell!";
+	private String description = "Generate an aspectJ file and failing fast test case:[Careless_Cleanup] "
+			+ "<br>1. AspectJ file is to expose influence of bad smell."
+			+ "<br>2. Failing fast test case is to reproduce the failing scenario.";
 	private QuickFixCore quickFixCore;
 	private CompilationUnit compilationUnit;
 	private List<String> importObjects = new ArrayList<String>();
@@ -82,20 +84,63 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 
 	@Override
 	public Image getImage() {
-		return JavaPluginImages.get(JavaPluginImages.IMG_OBJS_QUICK_FIX);
+		return JavaPluginImages.get(JavaPluginImages.IMG_OBJS_QUICK_ASSIST);
 	}
 
 	@Override
 	public void run(IMarker markerInRun) {
 		marker = markerInRun;
 		BadSmellTypeConfig config = new BadSmellTypeConfig(markerInRun);
+		generateRobustaUtilsPackageFile();
 		generateAspectJFile(config);
 		generateUtFileForAspectJ(config);
 
 		refreshProject();
 
 	}
-	
+
+	private void generateRobustaUtilsPackageFile() {
+		String robustaUtilsPackage = "ntut.csie.RobustaUtils";
+		createPackage(robustaUtilsPackage);
+		projectPath = ResourcesPlugin.getWorkspace().getRoot().getLocation()
+				.toOSString();
+		String filePathAspectJSwitch = projectPath + "\\" + packageFilePath
+				+ "\\ntut\\csie\\RobustaUtils\\AspectJSwitch.java";
+		String filePathCustomRobustaException = projectPath + "\\"
+				+ packageFilePath
+				+ "\\ntut\\csie\\RobustaUtils\\CustomRobustaException.java";
+		File aspectJSwitchFile = new File(filePathAspectJSwitch);
+		File customRobustaExceptionFile = new File(
+				filePathCustomRobustaException);
+		if (!aspectJSwitchFile.exists()) {
+			String aspectJSwitchFileContent = buildUpAspectJSwitch(robustaUtilsPackage);
+			WriteFile(aspectJSwitchFileContent, filePathAspectJSwitch);
+			refreshPackageExplorer(filePathAspectJSwitch);
+		}
+		if (!customRobustaExceptionFile.exists()) {
+			String customExceptionFileContent = buildUpCustomException(robustaUtilsPackage);
+			WriteFile(customExceptionFileContent,
+					filePathCustomRobustaException);
+			refreshPackageExplorer(filePathCustomRobustaException);
+		}
+	}
+
+	private String buildUpCustomException(String packageChain) {
+		String packageContent = "package " + packageChain + ";\n\n";
+		String defineClass = "public class CustomRobustaException extends RuntimeException {\n\t";
+		String constructorWithoutParams = "public CustomRobustaException() {\r\n"
+				+ "\t\t super();\n" + "\t}\n\t";
+		String constructorWithThrowableParams = "public CustomRobustaException(Throwable e) {\r\n"
+				+ "\t\t super(e);\n" + "\t}\n\t";
+		String constructorWithStringParams = "public CustomRobustaException(String msg) {\r\n"
+				+ "\t\t super(msg);\n" + "\t}\n\t";
+		String constructorWithMultiParams = "public CustomRobustaException(String msg, Throwable e) {\r\n"
+				+ "\t\t super(msg, e);\n" + "\t}\n";
+		return packageContent + defineClass + constructorWithoutParams
+				+ constructorWithThrowableParams + constructorWithStringParams
+				+ constructorWithMultiParams + "}";
+
+	}
 
 	private void generateUtFileForAspectJ(BadSmellTypeConfig config) {
 		// create a package
@@ -104,7 +149,6 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 
 		// find method name
 		// 命名需要修正
-
 
 		// create a test file
 		String testFilePath = projectPath + "\\" + packageFilePath
@@ -123,15 +167,18 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 			String testFilePath) {
 
 		String testFileContent = "";
-		String beforeContent = "package " + packageName + ";\n\n"
-				+ "import org.junit.Test;\nimport ntut.csie.aspect."
-				+ config.getBadSmellType() + ".AspectJSwitch;\n"
-				+ "import org.junit.Assert;\n";
+		String beforeContent = "package "
+				+ packageName
+				+ ";\n\n"
+				+ "import org.junit.Test;\n"
+				+ "import ntut.csie.RobustaUtils.AspectJSwitch;\n"
+				+ "import org.junit.Assert;\nimport java.lang.reflect.Method;\n"
+				+ "import java.lang.reflect.InvocationTargetException;\n";
 		String generateTestFile = "\r\n"
 				+ "public class test"
 				+ makeFirstCharacterUpperCase(config.getClassName())
 				+ "MethodUseAspetctJ {"
-				+ "\r\n\n\tprivate AspectJSwitch repo = AspectJSwitch.getInstance();\n";
+				+ "\r\n\n\tprivate AspectJSwitch aspectJSwitch = AspectJSwitch.getInstance();\n";
 		String appendNewTestCase = "";
 
 		// Specific exception import
@@ -161,49 +208,43 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 			}
 		}
 		int exceptionIndex = 0;
-		String methodDeclarationName = config.getMethodDeclarationWhichHasBadSmell().getName().toString();
-		for (String testOneMethod : config.getCollectBadSmellMethods()) {
-			
-			if (!result.contains(makeFirstCharacterUpperCase(testOneMethod)+"ThrowExceptionIn" +
-					makeFirstCharacterUpperCase(methodDeclarationName) + "()")) {
-				if(!appendNewTestCase.contains(makeFirstCharacterUpperCase(testOneMethod)+"ThrowExceptionIn" +
-										makeFirstCharacterUpperCase(methodDeclarationName) + "()")){
-					
-					String generateOneTestCase = "\n\t@Test"
-							+ "\n\t"
-							+ "public void test"
-							+ makeFirstCharacterUpperCase(testOneMethod)
-							+ "ThrowExceptionIn" 
+		String methodDeclarationName = config
+				.getMethodDeclarationWhichHasBadSmell().getName().toString();
+		String testOneMethod = config.getCollectBadSmellMethods().get(0);
+		if (!result.contains("ReleaseMethodShouldExecuteIn"
+				+ makeFirstCharacterUpperCase(methodDeclarationName) + "()")) {
+			if (!appendNewTestCase
+					.contains("ReleaseMethodShouldExecuteIn"
 							+ makeFirstCharacterUpperCase(methodDeclarationName)
-							+ "() {\n\t\trepo.initResponse();"
-							+ "\n\t\trepo.addResponse(\""
-							+ testOneMethod
-							+ "/f("
-							+ config.getCollectBadSmellExceptionTypes().get(exceptionIndex)
-							+ ")\");"
-							+ "\n\t\trepo.addResponse(\""
-							+ "close"
-							+ "/f("
-							+ "RuntimeException"
-							+ ")\");"
-							+ "\n\t\trepo.toBeforeFirstResponse();"
-							+ "\n\t\ttry{\n\t\t\t"
-							+ config.getClassName()
-							+ "."
-							+ methodDeclarationName
-							+ "();\n\t\t\t"
-							+ "Assert.fail(\"It is a bad smell for CarelessCleanup.\");"
-							+ "\n\t\t}catch (RuntimeException e) {\n\t\t\tAssert.assertEquals(\"erase bad smell\",e.getMessage());"
-							+ "\n\t\t}catch (Exception e) {\n\t\t\tAssert.fail(\"It is a bad smell for "
-							+ config.getBadSmellType()
-							+ ".\");"
-							+ "\n\t\t}" + "\n\t}";
-					appendNewTestCase = appendNewTestCase + generateOneTestCase;
-					testMethodName = "test"
-							+ makeFirstCharacterUpperCase(testOneMethod)
-							+ "ThrowExceptionInMain";
-					exceptionIndex++;
-				}
+							+ "()")) {
+				String generateOneTestCase = "\n\t@Test" + "\n\t"
+						+ "public void testReleaseMethodShouldExecuteIn"
+						+ makeFirstCharacterUpperCase(methodDeclarationName)
+						+ "() {\n\t\taspectJSwitch.initResponse();"
+						+ "\n\t\taspectJSwitch.addResponse(\""
+						+ testOneMethod
+						+ "/f("
+						+ config.getCollectBadSmellExceptionTypes().get(
+								exceptionIndex)
+						+ ")\");"
+						+ "\n\t\taspectJSwitch.addResponse(\""
+						+ "close"
+						+ "/AOPCheckResources"
+						+ "\");"
+						+ "\n\t\taspectJSwitch.toFirstResponse();"
+						+ "\n\t\ttry{\n\t\t\t"
+						+ config.getMethodCaller(config
+								.getMethodDeclarationWhichHasBadSmell())
+						+ "\n\t\t\t"
+						+ "Assert.assertTrue(aspectJSwitch.isResourceCleanup());"
+						+ "\n\t\t}"
+						+ "catch (Exception e) {\n\t\t\tAssert.assertTrue(aspectJSwitch.isResourceCleanup());"
+						+ "\n\t\t}" + "\n\t}";
+				appendNewTestCase = appendNewTestCase + generateOneTestCase;
+				testMethodName = "test"
+						+ makeFirstCharacterUpperCase(testOneMethod)
+						+ "ThrowExceptionInMain";
+				exceptionIndex++;
 			}
 		}
 		if (!filePathUnitTest.exists())
@@ -228,21 +269,11 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 
 		String filePathAspectJFile = projectPath + "\\" + packageFilePath
 				+ "\\ntut\\csie\\aspect" + "\\" + config.getBadSmellType()
-				+ "\\" + config.getClassName() +"AspectException.aj";
-		String filePathAspectJSwitch = projectPath + "\\" + packageFilePath
-				+ "\\ntut\\csie\\aspect" + "\\" + config.getBadSmellType()
-				+ "\\" + "AspectJSwitch.java";
-
+				+ "\\" + config.getClassName() + "AspectException.aj";
 		String aspectJFileContent = config.buildUpAspectsFile(packageChain,
 				filePathAspectJFile);
-		String aspectJSwitchFileContent = buildUpAspectJSwitch(packageChain);
-
 		WriteFile(aspectJFileContent, filePathAspectJFile);
-		WriteFile(aspectJSwitchFileContent, filePathAspectJSwitch);
-
 		refreshPackageExplorer(filePathAspectJFile);
-		refreshPackageExplorer(filePathAspectJSwitch);
-
 	}
 
 	public String buildUpAspectJSwitch(String packageChain) {
@@ -252,35 +283,46 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 
 		String AspectJSwitchContentClassTitle = "\r\n"
 				+ "public class AspectJSwitch {";
-		String initialization = "private static AspectJSwitch instance;"
+		String initialization = "private static AspectJSwitch mAspectJSwitch;"
 				+ "\r\n" + "\t"
-				+ "private List<String> opres = new ArrayList<String>();"
-				+ "\r\n" + "\t" + "public Iterator<String> iterator = null;";
+				+ "private List<String> actionList = new ArrayList<String>();"
+				+ "\r\n" + "\t" + "public Iterator<String> iterator = null;"
+				+ "\r\n\t" + "private  boolean isCleanup = false;";
 		String constructor = "\r\n\r\n" + "\t" + "private AspectJSwitch() {"
 				+ "\r\n" + "\t" + "}";
 		String getInstanceContent = "\r\n\r\n" + "\t"
 				+ "public static AspectJSwitch getInstance() {" + "\r\n"
-				+ "\t\t" + "if (instance == null)" + "\r\n" + "\t\t\t"
-				+ "instance = new AspectJSwitch();" + "\r\n" + "\t\t"
-				+ "return instance;" + "\r\n" + "\t" + "}";
+				+ "\t\t" + "if (mAspectJSwitch == null)" + "\r\n" + "\t\t\t"
+				+ "mAspectJSwitch = new AspectJSwitch();" + "\r\n" + "\t\t"
+				+ "return mAspectJSwitch;" + "\r\n" + "\t" + "}";
 		String initResponseContent = "\r\n\r\n" + "\t"
 				+ "public void initResponse() {" + "\r\n" + "\t\t"
-				+ "opres.clear();" + "\r\n" + "\t" + "}";
+				+ "actionList.clear();" + "\r\n" + "\t" + "}";
 		String addResponseContent = "\r\n\r\n" + "\t"
-				+ "public void addResponse(String opRes) {" + "\r\n" + "\t\t"
-				+ "opres.add(opRes);" + "\r\n" + "\t" + "}";
-		String toBeforeFirstResponseContent = "\r\n\r\n" + "\t"
-				+ "public void toBeforeFirstResponse() {" + "\r\n" + "\t\t"
-				+ "iterator = opres.iterator();" + "\r\n" + "\t" + "}";
+				+ "public void addResponse(String action) {" + "\r\n" + "\t\t"
+				+ "actionList.add(action);" + "\r\n" + "\t" + "}";
+		String toFirstResponse = "\r\n\r\n" + "\t"
+				+ "public void toFirstResponse() {" + "\r\n" + "\t\t"
+				+ "iterator = actionList.iterator();" + "\r\n" + "\t" + "}";
 		String nextActionContent = "\r\n\r\n" + "\t"
-				+ "public synchronized String nextAction(String op) {" + "\r\n"
-				+ "\t\t" + "String ret = \"s\";" + "\r\n" + "\t\t"
-				+ "for (String action : opres)" + "\r\n" + "\t\t\t"
-				+ "if (action.startsWith(op + \"/\")) {" + "\r\n" + "\t\t\t\t"
-				+ "String[] parts = action.split(\"/\");" + "\r\n" + "\t\t\t\t"
-				+ "ret = parts[1];" + "\r\n" + "\t\t\t\t"
-				+ "opres.remove(action);" + "\r\n" + "\t\t\t\t" + "break;"
-				+ "\r\n" + "\t\t\t" + "}" + "\r\n" + "\t\t" + "return ret;"
+				+ "public synchronized String getOperation(String operation) {"
+				+ "\r\n" + "\t\t" + "String result = \"success\";" + "\r\n"
+				+ "\t\t" + "for (String action : actionList)" + "\r\n"
+				+ "\t\t\t" + "if (action.startsWith(operation + \"/\")) {"
+				+ "\r\n" + "\t\t\t\t"
+				+ "String exceptionType = action.split(\"/\")[1];" + "\r\n"
+				+ "\t\t\t\t" + "result = exceptionType;" + "\r\n" + "\t\t\t\t"
+				+ "actionList.remove(action);" + "\r\n" + "\t\t\t\t" + "break;"
+				+ "\r\n" + "\t\t\t" + "}" + "\r\n" + "\t\t" + "return result;"
+				+ "\r\n" + "\t" + "}";
+		String checkResource = "\r\n\r\n" + "\t"
+				+ "public void checkResource() {" + "\r\n" + "\t\t"
+				+ "if (isCleanup == false)" + "\r\n" + "\t\t\t"
+				+ "isCleanup = true;" + "\r\n" + "\t\t" + "\r\n" + "\t" + "}";
+		String isResourceCleanup = "\r\n\r\n" + "\t"
+				+ "public boolean isResourceCleanup() {" + "\r\n" + "\t\t"
+				+ "boolean tmp = isCleanup;" + "\r\n" + "\t\t"
+				+ "isCleanup = false;" + "\r\n" + "\t\t" + "return tmp;"
 				+ "\r\n" + "\t" + "}";
 		String aspectJSwitchEnd = "\r\n\r\n" + "}";
 
@@ -289,24 +331,29 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 				+ AspectJSwitchContentClassTitle + "\r\n" + "\t"
 				+ initialization + "\r\n" + "\t" + constructor + "\t"
 				+ getInstanceContent + "\t" + initResponseContent + "\t"
-				+ addResponseContent + "\t" + toBeforeFirstResponseContent
-				+ "\t" + nextActionContent + "\t" + aspectJSwitchEnd;
+				+ addResponseContent + "\t" + toFirstResponse + "\t"
+				+ nextActionContent + "\t" + checkResource + "\t"
+				+ isResourceCleanup + "\t" + aspectJSwitchEnd;
 
 		return AspectJSwitchContent;
 
 	}
 
-
 	// packageName could be in format like a.b.c.d
 	public void createPackage(String packageName) {
 		try {
-			
 			project = marker.getResource().getProject();
 			javaproject = JavaCore.create(project);
 			IPackageFragmentRoot root = getSourceFolderOfCurrentProject();
-			String ss = root.createPackageFragment(packageName, false, null)
-					.getPath().toString();
 			packageFilePath = root.getPath().makeAbsolute().toOSString();
+			String s = packageName.trim().replaceAll("\\.", "/");
+			String filePathAspectJFile = ResourcesPlugin.getWorkspace()
+					.getRoot().getLocation().toOSString()
+					+ packageFilePath + "\\" + s;
+			File file = new File(filePathAspectJFile);
+			if (!file.exists()) {
+				root.createPackageFragment(packageName, false, null);
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException();
@@ -328,7 +375,7 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 			closeWriter(writer);
 		}
 	}
-	
+
 	private void closeWriter(BufferedWriter writer) {
 		try {
 			writer.close();
@@ -337,10 +384,10 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 			ignore();
 		}
 	}
-	
+
 	private void ignore() {
 	}
-	
+
 	private void refreshPackageExplorer(String fileCreateFile) {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IPath location = Path.fromOSString(fileCreateFile);
@@ -368,7 +415,7 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 			job.schedule();
 		}
 	}
-	
+
 	private void refreshProject(IProject project) {
 		// build project to refresh
 		try {
@@ -383,21 +430,27 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 	private void showOneButtonPopUpMenu(final String title, final String msg) {
 		PopupDialog.showDialog(title, msg);
 	}
-	
-	private String makeFirstCharacterUpperCase(String name){
+
+	private String makeFirstCharacterUpperCase(String name) {
 		return name.substring(0, 1).toUpperCase() + name.substring(1);
 	}
-	
+
 	private String buildUpAspectsFile(String exceptionType,
 			String injectedMethodReturnType, String objectTypeOfInjectedMethod,
 			String className, String nameOfMethodWhichHasBadSmell,
 			String returnTypeOfMethodWhichHasBadSmell,
-			String injectedMethodName, String badSmellType, String packageChain, int lineNumberOfMethodWhichWillThrowSpecificException) {
+			String injectedMethodName, String badSmellType,
+			String packageChain,
+			int lineNumberOfMethodWhichWillThrowSpecificException) {
 		String space = " ";
 		String and = "&&";
 		String aspectJClassTitle = "\r\n" + "public aspect " + className
-				+ "Aspect"+exceptionType+"In"+makeFirstCharacterUpperCase(nameOfMethodWhichHasBadSmell)+"FunctionAtLine"+lineNumberOfMethodWhichWillThrowSpecificException+" {";
-		String pointCut = "pointcut find" + makeFirstCharacterUpperCase(injectedMethodName) + "("
+				+ "Aspect" + exceptionType + "In"
+				+ makeFirstCharacterUpperCase(nameOfMethodWhichHasBadSmell)
+				+ "FunctionAtLine"
+				+ lineNumberOfMethodWhichWillThrowSpecificException + " {";
+		String pointCut = "pointcut find"
+				+ makeFirstCharacterUpperCase(injectedMethodName) + "("
 				+ objectTypeOfInjectedMethod + " object" + ") : ";
 		String call = "call" + "(" + injectedMethodReturnType + space
 				+ objectTypeOfInjectedMethod + "." + injectedMethodName
@@ -407,17 +460,22 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 				+ returnTypeOfMethodWhichHasBadSmell + space + className + "."
 				+ nameOfMethodWhichHasBadSmell + "(..)" + ");";
 
-		String around = injectedMethodReturnType+" around(" + objectTypeOfInjectedMethod + " object"
-				+ ") throws " + exceptionType + " : find" + makeFirstCharacterUpperCase(injectedMethodName)
+		String around = injectedMethodReturnType + " around("
+				+ objectTypeOfInjectedMethod + " object" + ") throws "
+				+ exceptionType + " : find"
+				+ makeFirstCharacterUpperCase(injectedMethodName)
 				+ "(object) {";
-		String aroundContent = "\t" + "  boolean aspectSwitch = false;" + "\r\n"
-				+ "\t" + "  if(aspectSwitch){" + "\r\n" + "\t\t" + "throw new "
-				+ exceptionType + "();" + "\r\n" + "\t" + "  } else {" + "\r\n";
+		String aroundContent = "\t" + "  boolean aspectSwitch = false;"
+				+ "\r\n" + "\t" + "  if(aspectSwitch){" + "\r\n" + "\t\t"
+				+ "throw new " + exceptionType + "();" + "\r\n" + "\t"
+				+ "  } else {" + "\r\n";
 		String elseContent = "";
-		if(injectedMethodReturnType.equals("void")){
-			elseContent =  "\t\t" + "object." + injectedMethodName + "();" + "\r\n";
-		}else{
-			elseContent =  "\t\t" + " return object." + injectedMethodName + "();" + "\r\n";
+		if (injectedMethodReturnType.equals("void")) {
+			elseContent = "\t\t" + "object." + injectedMethodName + "();"
+					+ "\r\n";
+		} else {
+			elseContent = "\t\t" + " return object." + injectedMethodName
+					+ "();" + "\r\n";
 		}
 		String aroundEnd = "\t" + "  }" + "\r\n" + "\t" + "}" + "\r\n" + "}";
 
@@ -431,11 +489,10 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 				+ pointCut + call + "\r\n" + "\t" + and + target + "\r\n"
 				+ "\t" + and + withInCode + "\r\n\r\n" + "\t" + around + "\r\n"
 				+ aroundContent + elseContent + aroundEnd;
-		System.out.println( "aspectJFileConetent = " + aspectJFileConetent );
 
 		return aspectJFileConetent;
 	}
-	
+
 	private String getTheObjectTypeOfMethodInvocation(
 			MethodInvocation methodWhichWillThrowSpecificException) {
 		FindExpressionObjectOfMethodInvocationVisitor theFirstExpressionVisitor = new FindExpressionObjectOfMethodInvocationVisitor();
@@ -516,13 +573,14 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 			exceptions.addAll(Arrays.asList(methodBinding.getExceptionTypes()));
 		}
 		if (!exceptions.isEmpty()) {
-			
+
 			ITypeBinding exceptionType = exceptions.get(0);
 			String exceptionPackage = exceptionType.getBinaryName();
-			if(exceptionPackage.equalsIgnoreCase("java.lang.Exception")){
-				showOneButtonPopUpMenu("Remind you!", "It is not allowed to inject super Exception class in AspectJ!");
+			if (exceptionPackage.equalsIgnoreCase("java.lang.Exception")) {
+				showOneButtonPopUpMenu("Remind you!",
+						"It is not allowed to inject super Exception class in AspectJ!");
 				return null;
-			}else{
+			} else {
 				checkIsDuplicate(exceptionPackage);
 				return exceptionType.getName().toString();
 			}
@@ -535,7 +593,7 @@ public class AddAspectsMarkerResoluationForCarelessCleanup implements
 		MethodInvocation candidate = null;
 		for (MethodInvocation methodInv : methodInvocations) {
 			int lineNumberOfCloseInvocation = getStatementLineNumber(methodInv);
-			if(lineNumberOfCloseInvocation == badSmellLineNumber){
+			if (lineNumberOfCloseInvocation == badSmellLineNumber) {
 				return methodInv;
 			}
 		}

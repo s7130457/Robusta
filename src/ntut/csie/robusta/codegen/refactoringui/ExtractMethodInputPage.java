@@ -43,7 +43,6 @@ public class ExtractMethodInputPage extends UserInputWizardPage {
 	private Button protectedRadBtn;
 	private Button privateRadBtn;
 	//e.printStack、java.logger RadioButton
-	private Button printRadBtn;
 	private Button loggerRadBtn;
 	private JavaSourceViewer fSignaturePreview;
 	private Document fSignaturePreviewDocument;
@@ -76,9 +75,8 @@ public class ExtractMethodInputPage extends UserInputWizardPage {
 			
 			/* New Method Handler */
 			createLabel(composite, "&Catch Handler:");
-			Composite handlerGroup = createLayoutComposite(composite, 2);
-			printRadBtn = createRadioButton(handlerGroup, "e.printStackTrace();");
-			loggerRadBtn = createRadioButton(handlerGroup, "java.util.logging.Logger");
+			Composite handlerGroup = createLayoutComposite(composite, 1);
+			loggerRadBtn = createRadioButton(handlerGroup, "org.apache.log4j.Logger");
 			
 			Composite previewComposite = createLayoutComposite(composite, 1);
 			createSignaturePreview(previewComposite);
@@ -87,8 +85,7 @@ public class ExtractMethodInputPage extends UserInputWizardPage {
 			
 			//initialize
 			privateRadBtn.setSelection(true);
-			printRadBtn.setSelection(true);
-			
+			loggerRadBtn.setSelection(true);
 			handleInputChange();
 			
 	}
@@ -132,7 +129,6 @@ public class ExtractMethodInputPage extends UserInputWizardPage {
 	
 	private void setGroupSetting(boolean isTrue) {
 		newMethodText.setEnabled(!isTrue);
-		printRadBtn.setEnabled(!isTrue);
 		loggerRadBtn.setEnabled(!isTrue);
 		publicRadBtn.setEnabled(!isTrue);
 		protectedRadBtn.setEnabled(!isTrue);
@@ -152,12 +148,9 @@ public class ExtractMethodInputPage extends UserInputWizardPage {
 		else
 			status.merge(refactoring.setNewMethodModifierType(privateRadBtn.getText()));
 		
-		if (printRadBtn.getSelection())
-			status.merge(refactoring.setNewMethodLogType(printRadBtn.getText()));  			
-		else
+		if (loggerRadBtn.getSelection())
 			status.merge(refactoring.setNewMethodLogType(loggerRadBtn.getText()));
 		
-
 		setPageComplete(!status.hasError());
 		int severity = status.getSeverity();
 		String message = status.getMessageMatchingSeverity(severity);

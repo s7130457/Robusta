@@ -4,6 +4,7 @@ import java.util.Iterator;
 
 import ntut.csie.analyzer.UserDefinedMethodAnalyzer;
 import ntut.csie.csdet.preference.SmellSettings;
+import ntut.csie.robusta.agile.exception.EnableRLAnnotation;
 import ntut.csie.robusta.marker.EditorTracker;
 import ntut.csie.robusta.marker.MarkerModel;
 
@@ -27,7 +28,6 @@ public class ToggleNatureAction implements IObjectActionDelegate {
 	private static final String REMOVEDETECTOR = "Robusta.removeRLNatureAction";
 	private static Logger logger = LoggerFactory.getLogger(ToggleNatureAction.class);
 	private ISelection selection;
-	
 	private static MarkerModel markerModel= new MarkerModel();
 	
 	//add listener on editor that when its opened or update editor's content, editor will be added annotation
@@ -51,11 +51,14 @@ public class ToggleNatureAction implements IObjectActionDelegate {
 				}
 
 				if (project != null) {
+					EnableRLAnnotation.enableRLAnnotation(project);
 					toggleNature(project, action);
+					
 				}
 			}
 		}
 	}
+	
 
 	/*
 	 * (non-Javadoc)

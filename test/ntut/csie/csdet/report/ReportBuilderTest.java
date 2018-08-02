@@ -89,7 +89,7 @@ public class ReportBuilderTest {
 
 		Path path = new Path(PathUtils.getPathOfClassUnderSrcFolder(CommonExample.class, projectName));
 		
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 		
 		parser.setSource(JavaCore.createCompilationUnitFrom(ResourcesPlugin.getWorkspace().getRoot().getFile(path)));

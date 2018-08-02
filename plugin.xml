@@ -57,13 +57,6 @@
          	</separator>
          </menu>
          <action
-               class="ntut.csie.robusta.agile.exception.EnableRLAnnotation"
-               enablesFor="+"
-               id="Robusta.addAgileExceptionToProjLib"
-               label="Enable RL Annotation"
-               menubarPath="Robusta.menu/group">
-         </action>
-         <action
                class="ntut.csie.rleht.builder.ToggleNatureAction"
                enablesFor="+"
                id="Robusta.removeRLNatureAction"

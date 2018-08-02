@@ -313,7 +313,7 @@ public class InappropriateAnnotationModel implements IAnnotationModel {
 		throw new UnsupportedOperationException();
 	}
 
-	public Iterator<?> getAnnotationIterator() {
+	public Iterator getAnnotationIterator() {
 		return annotations.iterator();
 	}
 

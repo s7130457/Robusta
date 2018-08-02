@@ -62,7 +62,7 @@ public class ReportBuilder {
 	 * @param newPackageModel
 	 */
 	private void setSmellInfo(ICompilationUnit icu, PackageModel newPackageModel, String pkPath) {
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
+		ASTParser parser = ASTParser.newParser(AST.JLS8);
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
 		parser.setSource(icu);
 		parser.setResolveBindings(true);

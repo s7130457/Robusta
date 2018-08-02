@@ -2,18 +2,26 @@ package ntut.csie.test.DummyHandler;
 
 import ntut.csie.failFastUT.Dummy.dummyExample;
 import java.io.IOException;
-import java.io.FileWriter;
+import ntut.csie.RobustaUtils.AspectJSwitch;
 
 public aspect dummyExampleAspectException {
-	before() throws IOException: (call(* *(..) throws IOException) || call(*.new(..) throws IOException)) && within(dummyExample){
+
+	before() throws IOException: (call(* *(..) throws IOException) ) && withincode(* dummyExample.callStaticMethod(..)){
 
 	String name = thisJoinPoint.getSignature().getName();
-	if (thisJoinPoint.getKind().equals("constructor-call"))
-		name = thisJoinPoint.getSignature().getDeclaringTypeName().substring(thisJoinPoint.getSignature().getDeclaringTypeName().lastIndexOf(".") + 1);
-	String resp = AspectJSwitch.getInstance().nextAction(name);
-	if (resp.equals("f(IOException)"))
-		throw new IOException();
+	String operation = AspectJSwitch.getInstance().getOperation(name);
+	if (operation.equals("f(IOException)"))
+		throw new IOException("This exception is thrown from DummyHandler's unit test by using AspectJ.");
 
+	}
+	
+	Object around():(call(* *(..)) ||call(*.new(..)) ) && withincode (* dummyExample.*(..)){
+		String method = thisJoinPoint.toString();
+		if(method.contains("Exception(Throwable)")){
+			return proceed();
+		}else{
+			return null;
+		}
 	}
 	
 }

@@ -2,27 +2,32 @@ package ntut.csie.test.CarelessCleanup;
 
 import ntut.csie.failFastUT.CarelessCleanup.carelessCleanupExample;
 import java.io.IOException;
+importntut.csie.RobustaUtils.AspectJSwitch;
 
 public aspect carelessCleanupExampleAspectException {
-	before(): (call(* *.close(..) throws IOException)) && within(carelessCleanupExample){
 
-	String name = thisJoinPoint.getSignature().getName();
-	if (thisJoinPoint.getKind().equals("constructor-call"))
-		name = thisJoinPoint.getSignature().getDeclaringTypeName().substring(thisJoinPoint.getSignature().getDeclaringTypeName().lastIndexOf(".") + 1);
-	String resp = AspectJSwitch.getInstance().nextAction(name);
-	if (resp.equals("f(RuntimeException)"))
-		throw new RuntimeException("erase bad smell");
+	after(): (call(* *.close(..) throws IOException)) && withincode(* carelessCleanupExample.*(..)){
 
-	}
-	before() throws IOException: (call(* *(..) throws IOException) || call(*.new(..) throws IOException)) && within(carelessCleanupExample){
-
-	String name = thisJoinPoint.getSignature().getName();
-	if (thisJoinPoint.getKind().equals("constructor-call"))
-		name = thisJoinPoint.getSignature().getDeclaringTypeName().substring(thisJoinPoint.getSignature().getDeclaringTypeName().lastIndexOf(".") + 1);
-	String resp = AspectJSwitch.getInstance().nextAction(name);
-	if (resp.equals("f(IOException)"))
-		throw new IOException();
+		String name = thisJoinPoint.getSignature().getName();
+		String operation = AspectJSwitch.getInstance().getOperation(name);
+		if (operation.equals("AOPCheckResources"))
+			AspectJSwitch.getInstance().checkResource();
 
 	}
 	
+	before() throws IOException: (call(* *.read(..) throws IOException) ) && withincode(* carelessCleanupExample.callStaticMethod(..)){
+
+		String name = thisJoinPoint.getSignature().getName();
+		String operation = AspectJSwitch.getInstance().getOperation(name);
+		if (operation.equals("f(IOException)"))
+			throw new IOException("This Exception is thrown from Robusta.");
+
+	}
+	Object around():(call(* *(..))||call(*.new(..))) && withincode (* carelessCleanupExample.*(..)){
+		try{
+			return proceed();
+		}catch(Exception e){
+			return null;
+		}
+	}
 }
